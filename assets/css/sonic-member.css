@@ -1,0 +1,32 @@
+/* SONIC MEMBER — holo card + skin markup inti */
+.sonic-holo-card{position:relative;border-radius:20px;padding:2rem;margin-bottom:2rem;background:linear-gradient(135deg,rgba(0,240,255,.08),rgba(91,0,255,.08)),var(--sonic-surface);border:1px solid var(--glass-border);backdrop-filter:blur(14px);overflow:hidden;transform-style:preserve-3d;transition:transform .3s}
+.sonic-holo-glare{position:absolute;inset:0;background:linear-gradient(115deg,transparent 30%,rgba(0,240,255,.12) 45%,rgba(255,0,170,.1) 55%,transparent 70%);background-size:250% 250%;animation:holoGlare 6s linear infinite;pointer-events:none}
+@keyframes holoGlare{0%{background-position:0% 0%}100%{background-position:100% 100%}}
+.sonic-holo-scan{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--sonic-neon),transparent);box-shadow:0 0 12px var(--sonic-neon);animation:holoScan 4s linear infinite;pointer-events:none}
+@keyframes holoScan{0%{top:0}100%{top:100%}}
+.sonic-holo-grid{display:grid;grid-template-columns:110px 1fr auto;gap:1.6rem;align-items:center;position:relative;z-index:2}
+.sonic-holo-avatar{width:110px;height:110px;border-radius:50%;overflow:hidden;border:2px solid var(--sonic-neon);box-shadow:0 0 25px rgba(0,240,255,.45)}
+.sonic-holo-avatar img{width:100%;height:100%;object-fit:cover}
+.sonic-holo-label{font-size:.7rem;letter-spacing:3px;color:var(--sonic-muted);text-transform:uppercase}
+.sonic-holo-name{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:800;color:#fff;margin:.2rem 0}
+.sonic-holo-type,.sonic-holo-expire{color:var(--sonic-neon);font-size:.85rem;margin-top:.2rem}
+.sonic-holo-type i,.sonic-holo-expire i{margin-right:.4rem}
+.sonic-holo-stats{display:flex;gap:1.4rem}
+.sonic-holo-stat{text-align:center;padding:.8rem 1.1rem;background:rgba(0,0,0,.35);border:1px solid var(--glass-border);border-radius:14px;min-width:86px}
+.sonic-holo-stat .num{display:block;font-family:'Orbitron',sans-serif;font-size:1.7rem;font-weight:900;color:var(--sonic-neon);text-shadow:0 0 14px rgba(0,240,255,.6)}
+.sonic-holo-stat label{color:var(--sonic-muted);font-size:.7rem;text-transform:uppercase;letter-spacing:1px;margin:0}
+/* Skin markup inti SLiMS di dalam kartu member */
+.sonic-member-card table,.sonic-member-card .table{width:100%;color:var(--sonic-text);border-collapse:collapse}
+.sonic-member-card th,.sonic-member-card .table th{color:var(--sonic-neon);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;border-bottom:1px solid var(--glass-border)!important;padding:.7rem .8rem}
+.sonic-member-card td,.sonic-member-card .table td{border-color:rgba(0,240,255,.12)!important;padding:.7rem .8rem;color:var(--sonic-text)}
+.sonic-member-card .table-striped tbody tr:nth-of-type(odd),.sonic-member-card table tr:nth-of-type(odd){background:rgba(0,240,255,.04)}
+.sonic-member-card .form-control{background:rgba(0,0,0,.4);border:1px solid var(--glass-border);color:var(--sonic-text);border-radius:10px}
+.sonic-member-card .form-control:focus{border-color:var(--sonic-neon);box-shadow:0 0 0 3px rgba(0,240,255,.12)}
+.sonic-member-card .nav-tabs,.sonic-member-card .nav-pills{border-bottom:1px solid var(--glass-border);flex-wrap:wrap}
+.sonic-member-card .nav-link{color:var(--sonic-muted);border-radius:10px 10px 0 0}
+.sonic-member-card .nav-link.active,.sonic-member-card .nav-link:hover{color:var(--sonic-neon);background:rgba(0,240,255,.08);border-color:transparent}
+.sonic-member-card .alert{background:rgba(0,240,255,.08);border:1px solid var(--glass-border);color:var(--sonic-text);border-radius:12px}
+.sonic-member-card .badge{background:var(--sonic-neon);color:#001018}
+.sonic-member-card a{color:var(--sonic-neon)}
+.sonic-member-card h2,.sonic-member-card h3,.sonic-member-card h4{color:#fff}
+@media (max-width:768px){.sonic-holo-grid{grid-template-columns:1fr;text-align:center}.sonic-holo-stats{justify-content:center}}

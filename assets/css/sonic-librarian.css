@@ -1,0 +1,276 @@
+/* SONIC LIBRARIAN — Holographic Profile Cards */
+
+/* ===== WRAPPER ===== */
+.sonic-librarian-wrapper {
+    position: relative;
+    padding: 2rem 0;
+}
+
+.sonic-librarian-header {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-bottom: 2.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+}
+
+.sonic-librarian-header i {
+    font-size: 1.8rem;
+    color: var(--sonic-neon);
+    filter: drop-shadow(0 0 12px rgba(0, 240, 255, 0.6));
+}
+
+.sonic-librarian-header span {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--sonic-text);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* ===== GRID ===== */
+.sonic-librarian-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 2rem;
+}
+
+/* ===== CARD (auto-skin markup bawaan SLiMS) ===== */
+.sonic-librarian-grid .librarian,
+.sonic-librarian-grid > div[class*="librarian"],
+.sonic-librarian-grid > div[style*="float"],
+.sonic-librarian-grid > div[style*="width"],
+.sonic-librarian-grid > div {
+    background: var(--sonic-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 2rem;
+    backdrop-filter: blur(14px);
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Holographic glow border */
+.sonic-librarian-grid > div::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 20px;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--sonic-neon), transparent 40%, transparent 60%, var(--sonic-plasma));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6;
+    transition: opacity 0.3s;
+}
+
+.sonic-librarian-grid > div:hover::before {
+    opacity: 1;
+}
+
+/* Scanline animation */
+.sonic-librarian-grid > div::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--sonic-neon), transparent);
+    box-shadow: 0 0 12px var(--sonic-neon);
+    animation: librarianScan 5s linear infinite;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+@keyframes librarianScan {
+    0% { top: 0; }
+    100% { top: 100%; }
+}
+
+.sonic-librarian-grid > div:hover {
+    transform: translateY(-8px);
+    border-color: var(--sonic-neon);
+    box-shadow: 0 20px 50px rgba(0, 240, 255, 0.25);
+}
+
+/* ===== PHOTO ===== */
+.sonic-librarian-grid img,
+.sonic-librarian-grid .librarian img,
+.sonic-librarian-grid [class*="photo"] img,
+.sonic-librarian-grid [class*="image"] img {
+    width: 140px !important;
+    height: 140px !important;
+    border-radius: 50% !important;
+    object-fit: cover !important;
+    border: 3px solid var(--sonic-neon) !important;
+    box-shadow: 0 0 30px rgba(0, 240, 255, 0.4) !important;
+    margin: 0 auto 1.5rem !important;
+    display: block !important;
+    transition: all 0.4s;
+}
+
+.sonic-librarian-grid > div:hover img {
+    transform: scale(1.05);
+    box-shadow: 0 0 40px rgba(0, 240, 255, 0.7) !important;
+}
+
+/* ===== NAME ===== */
+.sonic-librarian-grid h3,
+.sonic-librarian-grid h4,
+.sonic-librarian-grid [class*="name"],
+.sonic-librarian-grid strong {
+    font-family: 'Orbitron', sans-serif !important;
+    font-size: 1.3rem !important;
+    font-weight: 800 !important;
+    color: #fff !important;
+    text-align: center !important;
+    margin: 0 0 0.5rem 0 !important;
+    letter-spacing: 1px;
+}
+
+/* ===== POSITION / JABATAN ===== */
+.sonic-librarian-grid .librarian-position,
+.sonic-librarian-grid [class*="position"],
+.sonic-librarian-grid [class*="jabatan"],
+.sonic-librarian-grid p {
+    text-align: center !important;
+    color: var(--sonic-neon) !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    margin: 0 0 1.5rem 0 !important;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+/* ===== INFO FIELDS (Nama, Jabatan, Surel, Sosmed) ===== */
+.sonic-librarian-grid ul,
+.sonic-librarian-grid ol,
+.sonic-librarian-grid [class*="info"],
+.sonic-librarian-grid [class*="detail"] {
+    list-style: none !important;
+    padding: 0 !important;
+    margin: 1rem 0 !important;
+}
+
+.sonic-librarian-grid li,
+.sonic-librarian-grid [class*="field"] {
+    padding: 0.8rem 1rem !important;
+    margin-bottom: 0.6rem !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 10px !important;
+    color: var(--sonic-text) !important;
+    font-size: 0.9rem !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 0.8rem !important;
+    transition: all 0.3s !important;
+}
+
+.sonic-librarian-grid li:hover {
+    background: rgba(0, 240, 255, 0.08) !important;
+    border-color: var(--sonic-neon) !important;
+    transform: translateX(5px);
+}
+
+/* Label "Nama", "Jabatan", "Surel", "Media Sosial" */
+.sonic-librarian-grid li strong,
+.sonic-librarian-grid li b,
+.sonic-librarian-grid [class*="label"] {
+    color: var(--sonic-neon) !important;
+    font-weight: 700 !important;
+    min-width: 100px;
+    display: inline-block;
+}
+
+/* ===== EMAIL LINK ===== */
+.sonic-librarian-grid a[href^="mailto:"],
+.sonic-librarian-grid a[href*="@"],
+.sonic-librarian-grid [class*="email"] a {
+    color: var(--sonic-neon) !important;
+    text-decoration: none !important;
+    transition: all 0.3s !important;
+}
+
+.sonic-librarian-grid a[href^="mailto:"]:hover {
+    color: var(--sonic-plasma) !important;
+    text-shadow: 0 0 10px rgba(255, 0, 170, 0.5);
+}
+
+/* ===== SOCIAL MEDIA LINKS ===== */
+.sonic-librarian-grid a[href*="facebook"],
+.sonic-librarian-grid a[href*="fb.com"],
+.sonic-librarian-grid a[href*="twitter"],
+.sonic-librarian-grid a[href*="instagram"],
+.sonic-librarian-grid a[href*="linkedin"],
+.sonic-librarian-grid a[href*="youtube"],
+.sonic-librarian-grid [class*="social"] a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 10px !important;
+    background: var(--sonic-surface) !important;
+    border: 1px solid var(--glass-border) !important;
+    color: var(--sonic-muted) !important;
+    margin: 0 0.3rem !important;
+    transition: all 0.3s !important;
+    text-decoration: none !important;
+}
+
+.sonic-librarian-grid a[href*="facebook"]:hover {
+    background: #1877F2 !important;
+    color: #fff !important;
+    border-color: #1877F2 !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(24, 119, 242, 0.4);
+}
+
+.sonic-librarian-grid a[href*="twitter"]:hover {
+    background: #1DA1F2 !important;
+    color: #fff !important;
+    border-color: #1DA1F2 !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(29, 161, 242, 0.4);
+}
+
+.sonic-librarian-grid a[href*="instagram"]:hover {
+    background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888) !important;
+    color: #fff !important;
+    border-color: #dc2743 !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(220, 39, 67, 0.4);
+}
+
+.sonic-librarian-grid a[href*="linkedin"]:hover {
+    background: #0A66C2 !important;
+    color: #fff !important;
+    border-color: #0A66C2 !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(10, 102, 194, 0.4);
+}
+
+.sonic-librarian-grid a[href*="youtube"]:hover {
+    background: #FF0000 !important;
+    color: #fff !important;
+    border-color: #FF0000 !important;
+    transform: translateY(-3px);
+    box-shadow: 0 8px 20px rgba(255, 0, 0, 0.4);
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .sonic-librarian-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .sonic-librarian-grid > div {
+        padding: 1.5rem;
+    }
+}

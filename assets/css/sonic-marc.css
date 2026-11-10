@@ -1,0 +1,12 @@
+/* SONIC MARC — terminal decoder */
+.sonic-terminal-wide{max-width:920px;width:100%}
+.sonic-marc-out{font-family:'Courier New',monospace;font-size:.85rem;line-height:1.7}
+.marc-stream{display:flex;flex-direction:column;gap:2px}
+.marc-line{display:flex;gap:.8rem;padding:.15rem .5rem;border-radius:6px;transition:background .2s}
+.marc-line:hover{background:rgba(0,240,255,.08)}
+.marc-idx{color:#3d4a57;min-width:2ch}
+.marc-tag{color:var(--sonic-neon);font-weight:700;min-width:3ch;text-shadow:0 0 8px rgba(0,240,255,.5)}
+.marc-ind{color:var(--sonic-plasma);min-width:2ch}
+.marc-rest{color:var(--sonic-text);word-break:break-word}
+.marc-sf{color:#ffd700;font-weight:700}
+.sonic-marc-empty{color:var(--sonic-muted);font-style:italic}

@@ -1,0 +1,26 @@
+/* SONIC FACET — sidebar filter neon */
+.sonic-result-layout{display:grid;grid-template-columns:280px 1fr;gap:2rem;align-items:start}
+.sonic-facet{position:sticky;top:90px;background:var(--sonic-surface);border:1px solid var(--glass-border);border-radius:16px;backdrop-filter:blur(12px);overflow:hidden}
+.sonic-facet-neon{position:relative}
+.sonic-facet-neon::before{content:'';position:absolute;inset:0;border-radius:16px;padding:1px;background:linear-gradient(180deg,var(--sonic-neon),transparent 60%);-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.6}
+.sonic-facet-head{display:flex;align-items:center;gap:.6rem;padding:1rem 1.2rem;color:var(--sonic-neon);font-weight:700;text-transform:uppercase;letter-spacing:1.5px;font-size:.85rem;border-bottom:1px solid var(--glass-border);background:rgba(0,240,255,.05)}
+.sonic-facet-head i{filter:drop-shadow(0 0 6px var(--sonic-neon))}
+.sonic-facet-toggle{margin-left:auto;background:none;border:0;color:var(--sonic-neon);cursor:pointer;display:none}
+.sonic-facet-body{padding:1.2rem}
+.sonic-facet-chips{display:flex;flex-wrap:wrap;gap:.4rem;margin-bottom:1rem}
+.sonic-chip{border-color:var(--sonic-plasma);color:var(--sonic-plasma)}
+.sonic-chip i{margin-right:.35rem}
+.sonic-facet-group{margin-bottom:1.1rem;display:flex;flex-direction:column;gap:.4rem}
+.sonic-facet-group label{color:var(--sonic-muted);font-size:.78rem;text-transform:uppercase;letter-spacing:1px;display:flex;align-items:center;gap:.4rem}
+.sonic-facet-group label i{color:var(--sonic-neon)}
+.sonic-facet-select,.sonic-facet-input{padding:.7rem .9rem;background:rgba(0,0,0,.4);border:1px solid var(--glass-border);border-radius:10px;color:var(--sonic-text);outline:none;transition:.3s;width:100%}
+.sonic-facet-select:focus,.sonic-facet-input:focus{border-color:var(--sonic-neon);box-shadow:0 0 0 3px rgba(0,240,255,.12)}
+.sonic-facet-select option{background:#0a0e1a;color:#e6f7ff}
+.sonic-facet-actions{display:flex;flex-direction:column;gap:.6rem;margin-top:1.4rem}
+.sonic-result-main{min-width:0}
+@media (max-width:900px){
+.sonic-result-layout{grid-template-columns:1fr}
+.sonic-facet{position:static}
+.sonic-facet-toggle{display:block}
+.sonic-facet.collapsed .sonic-facet-body{display:none}
+}

@@ -1,0 +1,214 @@
+/* SONIC ADMIN LOGIN — Command Center Auth */
+
+.sonic-admin-login-wrap {
+    min-height: 75vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 1.5rem;
+    position: relative;
+    z-index: 1;
+}
+
+.sonic-admin-frame {
+    max-width: 520px;
+    width: 100%;
+    background: linear-gradient(135deg, rgba(91, 0, 255, 0.08), rgba(0, 240, 255, 0.05)), var(--sonic-surface);
+    border: 1px solid var(--sonic-electric);
+    box-shadow: 0 0 60px rgba(91, 0, 255, 0.2), 0 0 120px rgba(0, 240, 255, 0.1);
+}
+
+.sonic-admin-frame::before {
+    background: linear-gradient(135deg, var(--sonic-electric), transparent 40%, transparent 60%, var(--sonic-plasma));
+    opacity: 0.9;
+}
+
+.sonic-admin-icon {
+    background: linear-gradient(135deg, rgba(91, 0, 255, 0.2), rgba(255, 0, 170, 0.15));
+    border-color: var(--sonic-electric);
+    color: var(--sonic-electric);
+    filter: drop-shadow(0 0 12px rgba(91, 0, 255, 0.6));
+    font-size: 2rem;
+}
+
+.sonic-admin-status {
+    color: var(--sonic-electric);
+}
+
+.sonic-admin-status .sonic-status-dot {
+    background: var(--sonic-electric);
+    box-shadow: 0 0 10px var(--sonic-electric);
+}
+
+/* Form login admin — auto-skin */
+.sonic-admin-frame .sonic-auth-body form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.2rem;
+}
+
+.sonic-admin-frame .sonic-auth-body label {
+    color: var(--sonic-neon);
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 0.4rem;
+    display: block;
+}
+
+.sonic-admin-frame .sonic-auth-body input[type="text"],
+.sonic-admin-frame .sonic-auth-body input[type="password"] {
+    width: 100%;
+    padding: 0.9rem 1rem;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    color: var(--sonic-text);
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s;
+    box-sizing: border-box;
+}
+
+.sonic-admin-frame .sonic-auth-body input:focus {
+    border-color: var(--sonic-electric);
+    box-shadow: 0 0 0 3px rgba(91, 0, 255, 0.2), 0 0 20px rgba(91, 0, 255, 0.15);
+    background: rgba(0, 0, 0, 0.7);
+}
+
+.sonic-admin-frame .sonic-auth-body input::placeholder {
+    color: var(--sonic-muted);
+}
+
+/* Checkbox "Ingat saya" */
+.sonic-admin-frame .sonic-auth-body input[type="checkbox"] {
+    accent-color: var(--sonic-electric);
+    width: 18px;
+    height: 18px;
+    margin-right: 0.5rem;
+    cursor: pointer;
+}
+
+.sonic-admin-frame .sonic-auth-body label:has(input[type="checkbox"]) {
+    display: flex;
+    align-items: center;
+    color: var(--sonic-muted);
+    font-size: 0.9rem;
+    text-transform: none;
+    letter-spacing: 0;
+    cursor: pointer;
+}
+
+/* Tombol Masuk — gradient electric */
+.sonic-admin-frame .sonic-auth-body input[type="submit"],
+.sonic-admin-frame .sonic-auth-body button[type="submit"] {
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, var(--sonic-electric), var(--sonic-plasma));
+    border: none;
+    border-radius: 12px;
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    cursor: pointer;
+    transition: all 0.3s;
+    box-shadow: 0 8px 25px rgba(91, 0, 255, 0.4);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.sonic-admin-frame .sonic-auth-body input[type="submit"]:hover,
+.sonic-admin-frame .sonic-auth-body button[type="submit"]:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 35px rgba(91, 0, 255, 0.6);
+}
+
+/* Tombol Home — outline */
+.sonic-admin-frame .sonic-auth-body a[href="index.php"],
+.sonic-admin-frame .sonic-auth-body a.btn {
+    padding: 0.85rem 1.5rem;
+    background: transparent;
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    color: var(--sonic-text);
+    text-decoration: none;
+    font-weight: 600;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.sonic-admin-frame .sonic-auth-body a[href="index.php"]:hover,
+.sonic-admin-frame .sonic-auth-body a.btn:hover {
+    border-color: var(--sonic-neon);
+    color: var(--sonic-neon);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+/* Footer admin */
+.sonic-admin-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+    font-size: 0.85rem;
+}
+
+.sonic-admin-badge {
+    color: var(--sonic-muted);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sonic-admin-badge i {
+    color: var(--sonic-electric);
+}
+
+.sonic-admin-home {
+    color: var(--sonic-neon);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: 0.3s;
+}
+
+.sonic-admin-home:hover {
+    color: var(--sonic-plasma);
+    text-shadow: 0 0 10px rgba(255, 0, 170, 0.5);
+}
+
+/* Alert error login */
+.sonic-admin-frame .sonic-auth-body .alert,
+.sonic-admin-frame .sonic-auth-body .alert-danger {
+    background: rgba(255, 51, 102, 0.1);
+    border: 1px solid var(--sonic-danger);
+    border-radius: 10px;
+    color: var(--sonic-danger);
+    padding: 0.8rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .sonic-admin-login-wrap {
+        padding: 2rem 1rem;
+    }
+    .sonic-admin-frame {
+        padding: 1.5rem;
+    }
+    .sonic-admin-footer {
+        flex-direction: column;
+        gap: 1rem;
+        text-align: center;
+    }
+}

@@ -1,0 +1,185 @@
+/* SONIC AUTH — holographic frame + auto-skin form bawaan SLiMS */
+
+/* ===== FRAME ===== */
+.sonic-auth-frame{position:relative;background:var(--sonic-surface);border:1px solid var(--glass-border);border-radius:20px;padding:2.5rem;margin-bottom:2rem;backdrop-filter:blur(14px);overflow:hidden}
+.sonic-auth-frame::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;background:linear-gradient(135deg,var(--sonic-neon),transparent 40%,transparent 60%,var(--sonic-plasma));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.7}
+
+/* Sudut HUD sci-fi */
+.sonic-auth-corner{position:absolute;width:40px;height:40px;border:2px solid var(--sonic-neon);pointer-events:none;filter:drop-shadow(0 0 6px rgba(0,240,255,.6))}
+.sonic-auth-corner.tl{top:12px;left:12px;border-right:0;border-bottom:0}
+.sonic-auth-corner.tr{top:12px;right:12px;border-left:0;border-bottom:0}
+.sonic-auth-corner.bl{bottom:12px;left:12px;border-right:0;border-top:0}
+.sonic-auth-corner.br{bottom:12px;right:12px;border-left:0;border-top:0}
+
+.sonic-auth-scanline{position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--sonic-neon),transparent);box-shadow:0 0 12px var(--sonic-neon);animation:authScan 5s linear infinite;pointer-events:none;opacity:.6}
+@keyframes authScan{0%{top:0}100%{top:100%}}
+
+/* ===== HEADER ===== */
+.sonic-auth-header{display:flex;align-items:center;gap:1.2rem;padding-bottom:1.5rem;margin-bottom:2rem;border-bottom:1px solid var(--glass-border);position:relative;z-index:2}
+.sonic-auth-icon{width:64px;height:64px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(91,0,255,.15));border:1px solid var(--glass-border);border-radius:16px;font-size:1.8rem;color:var(--sonic-neon);filter:drop-shadow(0 0 12px rgba(0,240,255,.5));flex-shrink:0}
+.sonic-auth-title{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:800;margin:0;color:#fff;letter-spacing:1px}
+.sonic-auth-sub{color:var(--sonic-muted);margin:.25rem 0 0;font-size:.9rem}
+.sonic-auth-status{margin-left:auto;display:flex;align-items:center;gap:.5rem;color:var(--sonic-success);font-size:.8rem;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.sonic-status-dot{width:8px;height:8px;border-radius:50%;background:var(--sonic-success);box-shadow:0 0 10px var(--sonic-success);animation:sonicPulse 2s infinite}
+@keyframes sonicPulse{0%,100%{opacity:1}50%{opacity:.4}}
+
+/* ===== AUTO-SKIN FORM BAWAAN SLiMS ===== */
+.sonic-auth-body{position:relative;z-index:2}
+
+/* Label */
+.sonic-auth-body label,
+.sonic-auth-body .form-label,
+.sonic-auth-body p{color:var(--sonic-text);font-weight:600;font-size:.9rem;margin-bottom:.5rem;display:block}
+
+/* Input text/password/email/url/tel */
+.sonic-auth-body input[type="text"],
+.sonic-auth-body input[type="password"],
+.sonic-auth-body input[type="email"],
+.sonic-auth-body input[type="url"],
+.sonic-auth-body input[type="tel"],
+.sonic-auth-body input[type="number"],
+.sonic-auth-body input[type="search"],
+.sonic-auth-body input[type="date"],
+.sonic-auth-body select,
+.sonic-auth-body textarea,
+.sonic-auth-body .form-control{
+    width:100%;
+    padding:.85rem 1rem;
+    background:rgba(0,0,0,.45);
+    border:1px solid var(--glass-border);
+    border-radius:12px;
+    color:var(--sonic-text);
+    font-size:.95rem;
+    outline:none;
+    transition:all .3s;
+    margin-bottom:1rem;
+    box-sizing:border-box;
+}
+.sonic-auth-body input:focus,
+.sonic-auth-body select:focus,
+.sonic-auth-body textarea:focus,
+.sonic-auth-body .form-control:focus{
+    border-color:var(--sonic-neon);
+    box-shadow:0 0 0 3px rgba(0,240,255,.15),0 0 20px rgba(0,240,255,.1);
+    background:rgba(0,0,0,.6);
+}
+.sonic-auth-body input::placeholder{color:var(--sonic-muted)}
+
+/* Select option */
+.sonic-auth-body select option{background:#0a0e1a;color:#e6f7ff}
+
+/* Textarea */
+.sonic-auth-body textarea{min-height:100px;resize:vertical}
+
+/* Tombol Submit (Masuk/Daftar/Simpan) */
+.sonic-auth-body input[type="submit"],
+.sonic-auth-body button[type="submit"],
+.sonic-auth-body .btn-primary,
+.sonic-auth-body .btn-success{
+    padding:.85rem 2rem;
+    background:linear-gradient(135deg,var(--sonic-neon),var(--sonic-electric));
+    border:none;
+    border-radius:12px;
+    color:#001018;
+    font-weight:700;
+    font-size:.95rem;
+    text-transform:uppercase;
+    letter-spacing:1px;
+    cursor:pointer;
+    transition:all .3s;
+    box-shadow:0 8px 25px rgba(0,240,255,.3);
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    margin-top:.5rem;
+}
+.sonic-auth-body input[type="submit"]:hover,
+.sonic-auth-body button[type="submit"]:hover,
+.sonic-auth-body .btn-primary:hover,
+.sonic-auth-body .btn-success:hover{
+    transform:translateY(-2px);
+    box-shadow:0 12px 35px rgba(0,240,255,.5);
+}
+
+/* Tombol secondary/link */
+.sonic-auth-body .btn-secondary,
+.sonic-auth-body .btn-default,
+.sonic-auth-body a.btn{
+    padding:.6rem 1.2rem;
+    background:transparent;
+    border:1px solid var(--glass-border);
+    border-radius:10px;
+    color:var(--sonic-text);
+    text-decoration:none;
+    transition:.3s;
+    display:inline-block;
+}
+.sonic-auth-body .btn-secondary:hover,
+.sonic-auth-body .btn-default:hover,
+.sonic-auth-body a.btn:hover{
+    border-color:var(--sonic-neon);
+    color:var(--sonic-neon);
+    background:rgba(0,240,255,.05);
+}
+
+/* Alert / pesan error */
+.sonic-auth-body .alert,
+.sonic-auth-body .alert-danger,
+.sonic-auth-body .alert-success,
+.sonic-auth-body .alert-info,
+.sonic-auth-body .alert-warning{
+    background:rgba(0,240,255,.08);
+    border:1px solid var(--glass-border);
+    border-radius:12px;
+    color:var(--sonic-text);
+    padding:1rem 1.2rem;
+    margin-bottom:1.2rem;
+}
+.sonic-auth-body .alert-danger{border-color:var(--sonic-danger);background:rgba(255,51,102,.08)}
+.sonic-auth-body .alert-success{border-color:var(--sonic-success);background:rgba(0,255,136,.08)}
+
+/* Checkbox / radio */
+.sonic-auth-body input[type="checkbox"],
+.sonic-auth-body input[type="radio"]{
+    accent-color:var(--sonic-neon);
+    width:18px;height:18px;
+    margin-right:.5rem;
+    cursor:pointer;
+}
+
+/* Link di dalam form */
+.sonic-auth-body a:not(.btn){color:var(--sonic-neon);text-decoration:none;transition:.3s}
+.sonic-auth-body a:not(.btn):hover{color:var(--sonic-plasma);text-shadow:0 0 10px rgba(255,0,170,.5)}
+
+/* Tabel (untuk halaman profil/pinjaman) */
+.sonic-auth-body table,.sonic-auth-body .table{width:100%;color:var(--sonic-text);border-collapse:collapse}
+.sonic-auth-body th,.sonic-auth-body .table th{color:var(--sonic-neon);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;border-bottom:1px solid var(--glass-border)!important;padding:.7rem .8rem;background:rgba(0,240,255,.04)}
+.sonic-auth-body td,.sonic-auth-body .table td{border-color:rgba(0,240,255,.12)!important;padding:.7rem .8rem}
+.sonic-auth-body .table-striped tbody tr:nth-of-type(odd),
+.sonic-auth-body table tr:nth-of-type(odd){background:rgba(0,240,255,.03)}
+
+/* Tab navigasi member */
+.sonic-auth-body .nav-tabs,.sonic-auth-body .nav-pills{border-bottom:1px solid var(--glass-border);flex-wrap:wrap;margin-bottom:1.5rem}
+.sonic-auth-body .nav-link{color:var(--sonic-muted);border-radius:10px 10px 0 0;transition:.3s}
+.sonic-auth-body .nav-link.active,.sonic-auth-body .nav-link:hover{color:var(--sonic-neon);background:rgba(0,240,255,.08);border-color:transparent}
+
+/* Badge */
+.sonic-auth-body .badge{background:var(--sonic-neon);color:#001018;padding:.3rem .6rem;border-radius:6px;font-weight:700}
+
+/* Heading */
+.sonic-auth-body h2,.sonic-auth-body h3,.sonic-auth-body h4{color:#fff;font-family:'Orbitron',sans-serif}
+.sonic-auth-body h2{font-size:1.4rem}
+.sonic-auth-body h3{font-size:1.15rem}
+.sonic-auth-body h4{font-size:1rem}
+
+/* Login khusus: form biasanya hanya 2 input + 1 tombol */
+.sonic-auth-body form{display:flex;flex-direction:column;gap:.3rem}
+.sonic-auth-body form > p{color:var(--sonic-muted);font-size:.88rem;line-height:1.6;margin-bottom:1rem}
+
+/* Responsive */
+@media (max-width:768px){
+    .sonic-auth-frame{padding:1.5rem}
+    .sonic-auth-header{flex-direction:column;text-align:center}
+    .sonic-auth-status{margin-left:0;margin-top:.8rem}
+    .sonic-auth-corner{width:28px;height:28px}
+}

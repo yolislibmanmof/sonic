@@ -1,0 +1,354 @@
+/* SONIC INFO DECK — Library Information Holographic */
+
+.sonic-info-deck {
+    position: relative;
+    max-width: 1100px;
+    margin: 0 auto;
+}
+
+.sonic-info-deck-inner {
+    background: var(--sonic-surface);
+    border: 1px solid var(--glass-border);
+    border-radius: 24px;
+    padding: 3rem;
+    backdrop-filter: blur(14px);
+    position: relative;
+    overflow: hidden;
+}
+
+/* HUD corners */
+.sonic-info-deck-inner::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 24px;
+    padding: 1px;
+    background: linear-gradient(135deg, var(--sonic-neon), transparent 40%, transparent 60%, var(--sonic-plasma));
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.6;
+}
+
+/* Scanline */
+.sonic-info-deck-inner::after {
+    content: '';
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--sonic-neon), transparent);
+    box-shadow: 0 0 12px var(--sonic-neon);
+    animation: infoScan 6s linear infinite;
+    pointer-events: none;
+    opacity: 0.4;
+}
+@keyframes infoScan {
+    0% { top: 0; }
+    100% { top: 100%; }
+}
+
+/* ===== HEADINGS ===== */
+.sonic-info-deck-inner h1,
+.sonic-info-deck-inner h2,
+.sonic-info-deck-inner h3 {
+    font-family: 'Orbitron', sans-serif !important;
+    color: #fff !important;
+    font-weight: 800 !important;
+    margin: 2.5rem 0 1.2rem 0 !important;
+    padding-bottom: 0.8rem;
+    border-bottom: 2px solid var(--glass-border);
+    position: relative;
+    letter-spacing: 1px;
+}
+
+.sonic-info-deck-inner h1:first-child,
+.sonic-info-deck-inner h2:first-child,
+.sonic-info-deck-inner h3:first-child {
+    margin-top: 0 !important;
+}
+
+.sonic-info-deck-inner h1::after,
+.sonic-info-deck-inner h2::after,
+.sonic-info-deck-inner h3::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 80px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--sonic-neon), transparent);
+    box-shadow: 0 0 10px var(--sonic-neon);
+}
+
+.sonic-info-deck-inner h1 { font-size: 2rem !important; }
+.sonic-info-deck-inner h2 { font-size: 1.6rem !important; }
+.sonic-info-deck-inner h3 { font-size: 1.3rem !important; color: var(--sonic-neon) !important; }
+
+/* ===== PARAGRAPHS ===== */
+.sonic-info-deck-inner p {
+    color: var(--sonic-text) !important;
+    font-size: 1rem !important;
+    line-height: 1.8 !important;
+    margin: 0 0 1.2rem 0 !important;
+}
+
+/* ===== BOLD LABELS (Address, Phone, Fax, Days) ===== */
+.sonic-info-deck-inner strong,
+.sonic-info-deck-inner b {
+    color: var(--sonic-neon) !important;
+    font-weight: 700 !important;
+    font-family: 'Rajdhani', sans-serif !important;
+    letter-spacing: 0.5px;
+}
+
+/* ===== CONTACT INFO CARDS (auto-detected) ===== */
+.sonic-info-deck-inner h2:has(+ p, + div):first-of-type ~ * {
+    /* section pertama = Contact Information */
+}
+
+/* ===== LIST / BULLET POINTS ===== */
+.sonic-info-deck-inner ul,
+.sonic-info-deck-inner ol {
+    list-style: none !important;
+    padding-left: 0 !important;
+    margin: 1rem 0 !important;
+}
+
+.sonic-info-deck-inner li {
+    padding: 0.8rem 1rem !important;
+    margin-bottom: 0.6rem !important;
+    background: rgba(0, 0, 0, 0.3) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-left: 3px solid var(--sonic-neon) !important;
+    border-radius: 10px !important;
+    color: var(--sonic-text) !important;
+    transition: all 0.3s !important;
+}
+
+.sonic-info-deck-inner li:hover {
+    background: rgba(0, 240, 255, 0.08) !important;
+    border-left-color: var(--sonic-plasma) !important;
+    transform: translateX(5px);
+}
+
+/* ===== OPENING HOURS TIMELINE ===== */
+.sonic-info-deck-inner p:has(strong) {
+    background: rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 1rem 1.2rem;
+    margin: 0.8rem 0;
+    transition: all 0.3s;
+}
+
+.sonic-info-deck-inner p:has(strong):hover {
+    border-color: var(--sonic-neon);
+    background: rgba(0, 240, 255, 0.05);
+}
+
+.sonic-info-deck-inner p:has(strong) strong {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.05rem;
+}
+
+/* Hari kerja badge */
+.sonic-info-deck-inner p:has(strong) strong::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sonic-neon);
+    box-shadow: 0 0 10px var(--sonic-neon);
+    margin-right: 0.3rem;
+}
+
+/* ===== SECTION ICONS (injected via JS) ===== */
+.sonic-info-deck-inner .sonic-section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    background: linear-gradient(135deg, rgba(0,240,255,.15), rgba(91,0,255,.15));
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    color: var(--sonic-neon);
+    font-size: 1.3rem;
+    margin-right: 1rem;
+    vertical-align: middle;
+    filter: drop-shadow(0 0 8px rgba(0,240,255,.5));
+}
+
+/* ===== COLLECTIONS CARD ===== */
+.sonic-info-deck-inner h2 + p,
+.sonic-info-deck-inner h3 + p {
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 12px;
+    padding: 1.2rem 1.5rem;
+    border: 1px solid var(--glass-border);
+}
+
+/* ===== LINKS ===== */
+.sonic-info-deck-inner a {
+    color: var(--sonic-neon) !important;
+    text-decoration: none !important;
+    border-bottom: 1px dashed rgba(0,240,255,.3);
+    transition: all 0.3s;
+}
+
+.sonic-info-deck-inner a:hover {
+    color: var(--sonic-plasma) !important;
+    border-bottom-color: var(--sonic-plasma);
+    text-shadow: 0 0 10px rgba(255,0,170,.5);
+}
+
+/* ===== DIVIDER ===== */
+.sonic-info-deck-inner hr {
+    border: none !important;
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent, var(--glass-border), transparent) !important;
+    margin: 2rem 0 !important;
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+    .sonic-info-deck-inner {
+        padding: 1.5rem;
+    }
+    .sonic-info-deck-inner h1 { font-size: 1.5rem !important; }
+    .sonic-info-deck-inner h2 { font-size: 1.3rem !important; }
+    .sonic-info-deck-inner h3 { font-size: 1.1rem !important; }
+}
+
+/* ===== CONTACT GRID ===== */
+.sonic-contact-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+}
+
+.sonic-contact-grid p {
+    background: linear-gradient(135deg, rgba(0,240,255,.05), rgba(91,0,255,.05)) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 14px !important;
+    padding: 1.2rem 1.4rem !important;
+    margin: 0 !important;
+    transition: all 0.3s !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.sonic-contact-grid p::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 4px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--sonic-neon), var(--sonic-plasma));
+    border-radius: 4px 0 0 4px;
+}
+
+.sonic-contact-grid p:hover {
+    transform: translateY(-4px);
+    border-color: var(--sonic-neon) !important;
+    box-shadow: 0 10px 30px rgba(0, 240, 255, 0.2);
+}
+
+.sonic-contact-grid p strong {
+    display: block !important;
+    margin-bottom: 0.5rem !important;
+    font-size: 0.85rem !important;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+/* ===== HOURS TIMELINE ===== */
+.sonic-hours-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+    margin: 1.5rem 0;
+    padding-left: 1.5rem;
+    border-left: 2px solid var(--glass-border);
+    position: relative;
+}
+
+.sonic-hours-timeline::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    background: linear-gradient(180deg, var(--sonic-neon), var(--sonic-plasma), transparent);
+}
+
+.sonic-hours-timeline p {
+    position: relative;
+    padding: 1rem 1.2rem !important;
+    background: rgba(0, 0, 0, 0.25) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 12px !important;
+    margin: 0 !important;
+    transition: all 0.3s !important;
+}
+
+.sonic-hours-timeline p::before {
+    content: '';
+    position: absolute;
+    left: -1.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--sonic-bg);
+    border: 2px solid var(--sonic-neon);
+    box-shadow: 0 0 10px var(--sonic-neon);
+}
+
+.sonic-hours-timeline p:hover {
+    background: rgba(0, 240, 255, 0.05) !important;
+    border-color: var(--sonic-neon) !important;
+    transform: translateX(5px);
+}
+
+.sonic-hours-timeline p strong {
+    display: block !important;
+    margin-bottom: 0.4rem !important;
+    font-size: 1rem !important;
+}
+
+/* ===== INFO CARD ===== */
+.sonic-info-card {
+    background: linear-gradient(135deg, rgba(0,240,255,.05), rgba(255,0,170,.03)) !important;
+    border: 1px solid var(--glass-border) !important;
+    border-radius: 14px !important;
+    padding: 1.5rem !important;
+    margin: 1rem 0 !important;
+    transition: all 0.3s !important;
+}
+
+.sonic-info-card:hover {
+    border-color: var(--sonic-neon) !important;
+    box-shadow: 0 10px 30px rgba(0, 240, 255, 0.15);
+}
+
+@media (max-width: 768px) {
+    .sonic-contact-grid {
+        grid-template-columns: 1fr;
+    }
+    .sonic-hours-timeline {
+        padding-left: 1rem;
+    }
+    .sonic-hours-timeline p::before {
+        left: -1.4rem;
+        width: 10px;
+        height: 10px;
+    }
+}
