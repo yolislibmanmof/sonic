@@ -1,0 +1,10 @@
+/* SONIC PARTICLES — Floating Book Pages (lapisan ambien global) */
+#sonicParticles{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 1.6s ease}
+#sonicParticles.on{opacity:1}
+
+/* JEMBATAN FOOTER: footer dibuat semi-transparan agar partikel global tembus sampai footer.
+   Jika footer terasa kurang pekat, naikkan .78 ke .9 — atau hapus 2 baris ini untuk rollback. */
+body.sonic-theme .sonic-footer{background-image:none;background-color:rgba(3,5,10,.78)}
+body.sonic-theme .sonic-footer-top{background-image:none;background-color:transparent}
+
+@media (prefers-reduced-motion:reduce){#sonicParticles{display:none}}

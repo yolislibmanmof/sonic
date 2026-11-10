@@ -82,7 +82,8 @@ if (!function_exists('sonic_vendor')) {
     <!-- SONIC THEME (modular, versi cache-bust) -->
     <?php
     $sonicCssVer = date('Ymd-his');
-    foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info'] as $scf) {
+    foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash'] as $scf) {
+
         echo '<link rel="stylesheet" href="' . assets('css/' . $scf . '.css?v=' . $sonicCssVer) . '">' . "\n";
     }
     ?>

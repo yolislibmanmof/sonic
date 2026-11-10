@@ -212,3 +212,75 @@
         text-align: center;
     }
 }
+
+/* ===== PATCH COMPACT-FIT + INPUT RESCUE (penutup MISI 4-area admin) ===== */
+/* 1. Wrap: tidak memaksa tinggi 75vh lagi */
+.sonic-admin-login-wrap{min-height:auto;padding:2.2rem 1.5rem 2.5rem}
+/* 2. Frame ramping */
+.sonic-admin-frame{padding:1.5rem 1.8rem 1.3rem;max-width:480px}
+/* 3. Header compact */
+.sonic-admin-frame .sonic-auth-header{padding-bottom:.9rem;margin-bottom:1rem;gap:.9rem}
+.sonic-admin-frame .sonic-auth-icon{width:48px;height:48px;font-size:1.4rem;border-radius:12px}
+.sonic-admin-frame .sonic-auth-title{font-size:1.25rem}
+.sonic-admin-frame .sonic-auth-sub{font-size:.78rem;margin-top:.15rem}
+/* 4. Form rapat + INPUT TANPA TYPE akhirnya ter-skin gelap */
+.sonic-admin-frame .sonic-auth-body form{gap:.55rem}
+.sonic-admin-frame .sonic-auth-body label{margin-bottom:.25rem;font-size:.72rem}
+.sonic-admin-frame .sonic-auth-body input:not([type="checkbox"]):not([type="radio"]):not([type="submit"]):not([type="button"]),
+.sonic-admin-frame .sonic-auth-body select,
+.sonic-admin-frame .sonic-auth-body textarea,
+.sonic-admin-frame .sonic-auth-body .form-control{
+  width:100%;box-sizing:border-box;
+  padding:.68rem .95rem;margin-bottom:0;
+  background:rgba(0,0,0,.55)!important;
+  color:var(--sonic-text)!important;
+  border:1px solid var(--glass-border)!important;
+  border-radius:10px;font-size:.95rem;
+}
+.sonic-admin-frame .sonic-auth-body input:not([type="checkbox"]):focus{
+  border-color:var(--sonic-electric)!important;
+  box-shadow:0 0 0 3px rgba(91,0,255,.2),0 0 18px rgba(91,0,255,.25);
+  background:rgba(0,0,0,.7)!important;
+}
+/* 5. Checkbox custom neon (bukan kotak putih lagi) */
+.sonic-admin-frame .sonic-auth-body input[type="checkbox"]{
+  appearance:none;-webkit-appearance:none;
+  width:18px;height:18px;margin-right:.5rem;
+  border:1px solid var(--glass-border);border-radius:5px;
+  background:rgba(0,0,0,.5);cursor:pointer;position:relative;vertical-align:middle;
+}
+.sonic-admin-frame .sonic-auth-body input[type="checkbox"]:checked{
+  background:var(--sonic-electric);border-color:var(--sonic-electric);
+  box-shadow:0 0 10px rgba(91,0,255,.6);
+}
+.sonic-admin-frame .sonic-auth-body input[type="checkbox"]:checked::after{
+  content:'✓';color:#fff;font-size:12px;position:absolute;inset:0;
+  display:flex;align-items:center;justify-content:center;
+}
+.sonic-admin-frame .sonic-auth-body label:has(input[type="checkbox"]){margin:.15rem 0 .35rem;font-size:.8rem}
+/* 6. Tombol submit proporsional */
+.sonic-admin-frame .sonic-auth-body input[type="submit"],
+.sonic-admin-frame .sonic-auth-body button[type="submit"]{padding:.8rem 1.8rem;font-size:.9rem;border-radius:10px;margin-top:.15rem}
+/* 7. Tombol "Home" (input[type=button]) + tombol non-submit lain → kaca neon */
+.sonic-admin-frame .sonic-auth-body input[type="button"],
+.sonic-admin-frame .sonic-auth-body button:not([type="submit"]),
+.sonic-admin-frame .sonic-auth-body a[href="index.php"],
+.sonic-admin-frame .sonic-auth-body a.btn{
+  padding:.8rem 1.3rem;
+  background:transparent!important;
+  border:1px solid var(--glass-border)!important;
+  border-radius:10px;
+  color:var(--sonic-text)!important;
+  font-weight:600;font-size:.9rem;cursor:pointer;text-decoration:none;
+  display:inline-flex;align-items:center;justify-content:center;
+}
+.sonic-admin-frame .sonic-auth-body input[type="button"]:hover,
+.sonic-admin-frame .sonic-auth-body button:not([type="submit"]):hover{
+  border-color:var(--sonic-neon)!important;
+  color:var(--sonic-neon)!important;
+  background:rgba(0,240,255,.06)!important;
+}
+/* 8. Footer kotak ramping */
+.sonic-admin-footer{margin-top:1rem;padding-top:.8rem;font-size:.78rem}
+/* 9. Mobile tetap aman */
+@media (max-width:768px){.sonic-admin-frame{padding:1.3rem 1.2rem}}

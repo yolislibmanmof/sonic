@@ -1,32 +1,80 @@
 <?php
-# @Filename: _search-form.php (SONIC v2)
+# @Filename: _search-form.php (SONIC v4 — Fullscreen Slider + Welcome Walk)
 $sonic_compact = !empty($sonic_compact_hero);
 
-// Scan folder slider: assets/images/slider/
-$slider_dir = __DIR__ . '/../assets/images/slider';
+/* ===== SLIDER SCANNER (multi-folder: assets/images/slider/ + assets/images/slide*) ===== */
 $slider_imgs = [];
-if (is_dir($slider_dir)) {
-    foreach (scandir($slider_dir) as $sf) {
-        if (preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $sf)) {
-            $slider_imgs[] = assets('images/slider/' . $sf);
-        }
+$slider_seen = [];
+$slider_dirs = [
+    __DIR__ . '/../assets/images/slider' => 'images/slider/',
+    __DIR__ . '/../assets/images'        => 'images/',
+];
+foreach ($slider_dirs as $dir => $prefix) {
+    if (!is_dir($dir)) continue;
+    $files = scandir($dir);
+    if ($files === false) continue;
+    foreach ($files as $sf) {
+        if (!preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $sf)) continue;   // JPG + PNG + lainnya
+        if ($prefix === 'images/' && !preg_match('/^slide/i', $sf)) continue; // root: hanya slide*
+        $key = strtolower(preg_replace('/\.[^.]+$/', '', $sf));            // dedup slide1.jpg vs slide1.png
+        if (isset($slider_seen[$key])) continue;
+        $slider_seen[$key] = true;
+        $slider_imgs[] = ['src' => assets($prefix . $sf), 'name' => $sf];
     }
 }
+usort($slider_imgs, function ($a, $b) { return strnatcasecmp($a['name'], $b['name']); });
+
+/* ===== TEKS SAMBUTAN (silakan edit baris ini) ===== */
+$sonic_welcome_text = 'SELAMAT DATANG DI LAYANAN OPAC PERPUSTAKAAN';
+$sonic_welcome_words = explode(' ', $sonic_welcome_text);
 ?>
 
 <section class="sonic-hero<?= $sonic_compact ? ' compact' : '' ?>" id="sonicHero">
 
     <?php if (!$sonic_compact && count($slider_imgs) > 0): ?>
-    <!-- ===== PHOTO SLIDER ===== -->
+    <!-- ===== FULLSCREEN PHOTO SLIDER ===== -->
     <div class="sonic-slider" id="sonicSlider">
-        <?php foreach ($slider_imgs as $si => $src): ?>
-            <div class="sonic-slide<?= $si === 0 ? ' active' : '' ?>" style="background-image:url('<?= $src ?>')"></div>
+        <?php foreach ($slider_imgs as $si => $s): ?>
+            <div class="sonic-slide<?= $si === 0 ? ' active' : '' ?>" style="background-image:url('<?= $s['src'] ?>')"></div>
         <?php endforeach; ?>
         <div class="sonic-slider-overlay"></div>
+
         <div class="sonic-hud hud-tl"></div>
         <div class="sonic-hud hud-tr"></div>
         <div class="sonic-hud hud-bl"></div>
         <div class="sonic-hud hud-br"></div>
+
+        <!-- ===== WELCOME STAGE: siluet berjalan + teks sambutan ===== -->
+        <div class="sonic-welcome-stage" aria-hidden="true">
+            <h2 class="sonic-welcome-text">
+                <?php foreach ($sonic_welcome_words as $wi => $w): ?>
+                <span class="sonic-welcome-word" style="--wi:<?= $wi ?>"><?= htmlspecialchars($w) ?></span>
+                <?php endforeach; ?>
+            </h2>
+            <div class="sonic-walk-track">
+                <div class="sonic-walker">
+                    <svg class="sonic-walker-svg" viewBox="0 0 64 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <defs>
+                            <linearGradient id="sonicWalkerGrad" x1="0" y1="0" x2="1" y2="1">
+                                <stop offset="0" stop-color="#00f0ff"/>
+                                <stop offset="1" stop-color="#ff00aa"/>
+                            </linearGradient>
+                        </defs>
+                        <g stroke="url(#sonicWalkerGrad)" stroke-width="7" stroke-linecap="round">
+                            <circle cx="38" cy="13" r="9" fill="url(#sonicWalkerGrad)" stroke="none"/>
+                            <path class="w-part w-torso" d="M37 24 L34 62"/>
+                            <g class="w-part w-arm w-arm-b"><path d="M36 32 L24 54"/></g>
+                            <g class="w-part w-arm w-arm-f"><path d="M36 32 L49 52"/></g>
+                            <g class="w-part w-leg w-leg-b"><path d="M34 62 L25 90 L21 116"/></g>
+                            <g class="w-part w-leg w-leg-f"><path d="M34 62 L45 89 L47 116"/></g>
+                        </g>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <a href="#search-wraper" class="sonic-scroll-cue" aria-label="Gulir ke pencarian"><i class="fas fa-chevron-down"></i></a>
+
         <button type="button" class="sonic-slider-arrow prev" id="sliderPrev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
         <button type="button" class="sonic-slider-arrow next" id="sliderNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
         <div class="sonic-slider-dots" id="sliderDots"></div>

@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (prev) prev.addEventListener('click', function () { go(current - 1); restart(); });
         if (next) next.addEventListener('click', function () { go(current + 1); restart(); });
 
-        var hero = document.getElementById('sonicHero');
+        var hero = document.getElementById('sonicSlider');
         if (hero) {
             hero.addEventListener('mouseenter', function () { if (timer) clearInterval(timer); });
             hero.addEventListener('mouseleave', restart);

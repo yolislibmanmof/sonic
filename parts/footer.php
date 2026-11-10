@@ -161,7 +161,7 @@ foreach ($_sonic_modals as $_modal) {
 
 <?php
 // ===== Assets JS (safe) =====
-$_sonic_js = ['js/app.js', 'js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js'];
+$_sonic_js = ['js/app.js', 'js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js'];
 foreach ($_sonic_js as $_js) {
     $_js_path = __DIR__ . '/../assets/' . $_js;
     if (file_exists($_js_path)) {

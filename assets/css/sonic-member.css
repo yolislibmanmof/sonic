@@ -30,3 +30,61 @@
 .sonic-member-card a{color:var(--sonic-neon)}
 .sonic-member-card h2,.sonic-member-card h3,.sonic-member-card h4{color:#fff}
 @media (max-width:768px){.sonic-holo-grid{grid-template-columns:1fr;text-align:center}.sonic-holo-stats{justify-content:center}}
+
+/* ===== MISSION 3 PATCH: OVERRIDE PANEL PUTIH BOOTSTRAP DI AREA MEMBER ===== */
+.sonic-auth-body .card,.sonic-auth-body .card-body,.sonic-auth-body .card-header,.sonic-auth-body .card-footer,
+.sonic-auth-body .bg-white,.sonic-auth-body .bg-light,.sonic-auth-body .bg-body,
+.sonic-auth-body .panel,.sonic-auth-body .panel-body,.sonic-auth-body .well,
+.sonic-member-wrap .card,.sonic-member-wrap .bg-white,.sonic-member-wrap .bg-light{
+  background-color:rgba(8,12,24,.72)!important;
+  background-image:none!important;
+  border:1px solid var(--glass-border)!important;
+  color:var(--sonic-text)!important;
+  backdrop-filter:blur(10px);
+  border-radius:14px;
+}
+.sonic-auth-body .card-header{border-bottom:1px solid var(--glass-border)!important;background:rgba(0,240,255,.06)!important}
+.sonic-auth-body .table,.sonic-auth-body table{--bs-table-bg:transparent!important;--bs-table-striped-bg:rgba(0,240,255,.04)!important;--bs-table-hover-bg:rgba(0,240,255,.08)!important;background-color:transparent!important}
+.sonic-auth-body .table th,.sonic-auth-body table th{color:var(--sonic-neon)!important}
+.sonic-auth-body .table td,.sonic-auth-body table td,.sonic-auth-body caption,
+.sonic-auth-body p,.sonic-auth-body label,.sonic-auth-body .form-text,
+.sonic-auth-body .text-muted,.sonic-auth-body .text-secondary,.sonic-auth-body .text-body{color:var(--sonic-text)!important}
+.sonic-auth-body .table-striped>tbody>tr:nth-of-type(odd)>*{background-color:rgba(0,240,255,.04)!important;color:var(--sonic-text)!important}
+.sonic-auth-body input[type="text"],.sonic-auth-body input[type="password"],.sonic-auth-body input[type="email"],
+.sonic-auth-body input[type="number"],.sonic-auth-body input[type="date"],.sonic-auth-body input[type="search"],
+.sonic-auth-body select,.sonic-auth-body textarea,.sonic-auth-body .form-control{
+  background-color:rgba(0,0,0,.55)!important;
+  color:var(--sonic-text)!important;
+  border:1px solid var(--glass-border)!important;
+}
+.sonic-auth-body .form-control::placeholder,.sonic-auth-body input::placeholder{color:var(--sonic-muted)!important}
+.sonic-auth-body .btn-light,.sonic-auth-body .btn-secondary,.sonic-auth-body .btn-outline-secondary{
+  background:rgba(0,240,255,.1)!important;
+  color:var(--sonic-text)!important;
+  border:1px solid var(--glass-border)!important;
+}
+.sonic-auth-body .btn-light:hover,.sonic-auth-body .btn-secondary:hover{background:rgba(0,240,255,.2)!important;color:var(--sonic-neon)!important}
+.sonic-auth-body .list-group-item{background:rgba(8,12,24,.7)!important;border-color:var(--glass-border)!important;color:var(--sonic-text)!important}
+.sonic-auth-body .alert-info,.sonic-auth-body .alert-light{background:rgba(0,240,255,.08)!important;border:1px solid var(--glass-border)!important;color:var(--sonic-text)!important}
+.sonic-auth-body h1,.sonic-auth-body h2,.sonic-auth-body h3,.sonic-auth-body h4,.sonic-auth-body h5{color:#fff!important}
+.sonic-auth-body img{border-radius:12px}
+
+/* ===== PATCH 2: SIDEBAR FOTO MEMBER — sapuan bg-* + kolom pertama ===== */
+.sonic-auth-body [class*="bg-"],
+.sonic-auth-body .row > div:first-child,
+.sonic-auth-body > div > div:first-child{
+  background-color:rgba(8,12,24,.72)!important;
+  background-image:none!important;
+  border-radius:14px;
+  color:var(--sonic-text)!important;
+}
+.sonic-auth-body .btn-info,.sonic-auth-body .btn-outline-info,.sonic-auth-body .btn-link{
+  background:rgba(0,240,255,.12)!important;
+  color:var(--sonic-neon)!important;
+  border:1px solid var(--glass-border)!important;
+}
+.sonic-auth-body .btn-info:hover,.sonic-auth-body .btn-outline-info:hover{background:rgba(0,240,255,.25)!important}
+.sonic-auth-body img[src*="persons"]{
+  border:2px solid var(--sonic-neon);
+  box-shadow:0 0 18px rgba(0,240,255,.35);
+}

@@ -66,11 +66,11 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
         $output .= '<div class="sonic-list-content">';
         $output .= '<h4 class="sonic-list-title"><a href="'.$detail_url.'">'.stripslashes(addEllipsis($title, 80)).'</a></h4>';
         $output .= createButton($biblio_id, $biblio_detail['title']);
-        $output .= '<div style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin: 0.5rem 0;">'.$_authors_string.'</div>';
+        $output .= '<div class="sonic-list-meta"><span><i class="far fa-calendar-alt"></i>'.htmlspecialchars($biblio_detail['publish_year'] ?? '—').'</span><span><i class="fas fa-map-marker-alt"></i>'.htmlspecialchars($biblio_detail['call_number'] ?? '—').'</span><span><i class="fas fa-box"></i><span style="color:'.($availability > 0 ? 'var(--sonic-success)' : 'var(--sonic-danger)').';">'.($availability > 0 ? $availability.' available' : 'Unavailable').'</span></span></div>';
         $output .= '<p class="sonic-list-notes">'.$notes.'</p>';
         if ($i > 0 && $expand) {
-            $output .= '<div id="expand-'.$biblio_id.'" class="collapse py-2">'.$custom_field.'</div>';
-            $output .= '<a class="sonic-mini-btn" data-toggle="collapse" href="#expand-'.$biblio_id.'">⬇️ Show more</a>';
+        $output .= '<div id="expand-'.$biblio_id.'" class="collapse py-2">'.$custom_field.'</div>';
+        $output .= '<a class="sonic-mini-btn" data-toggle="collapse" href="#expand-'.$biblio_id.'">⬇️ Show more</a>';
         }
         $output .= '</div>';
         
@@ -96,7 +96,7 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
         $output .= '<span class="sonic-avail-badge '.$class_avail.'">'.($availability > 0 ? $availability.' '.__('available') : __('Unavailable')).'</span>';
         $output .= '</div>';
         $output .= '<h4 class="sonic-book-title">'.stripslashes(addEllipsis($title, 60)).'</h4>';
-        $output .= '<p class="sonic-book-author">'.(count($_authors ?? []) > 0 ? htmlspecialchars(implode(', ', is_array($_authors) ? array_slice($_authors, 0, 2) : explode('-', $_authors, 2))) : '—').'</p>';
+            $output .= '<p class="sonic-book-year"><i class="far fa-calendar-alt"></i>'.htmlspecialchars($biblio_detail['publish_year'] ?? '—').' &middot; '.htmlspecialchars($biblio_detail['call_number'] ?? '—').'</p>';
         $output .= '<div class="sonic-book-actions">';
         $output .= '<span class="sonic-mini-btn" style="pointer-events: none;">⚡ '.__('View').'</span>';
         $output .= '</div>';

@@ -1,0 +1,13 @@
+/* SONIC SUGGEST — dropdown autocomplete glassmorphism */
+.sonic-input-wrap,.sonic-search-box{position:relative}
+.sonic-suggest{position:absolute;top:calc(100% + 8px);left:0;right:0;background:rgba(6,10,20,.97);border:1px solid var(--glass-border);border-radius:14px;box-shadow:0 20px 50px rgba(0,0,0,.6),0 0 30px rgba(0,240,255,.12);backdrop-filter:blur(14px);z-index:60;display:none;max-height:320px;overflow-y:auto;overflow-x:hidden}
+.sonic-suggest.open{display:block;animation:sonicSugIn .18s ease}
+@keyframes sonicSugIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+.sonic-suggest-item{display:flex;align-items:center;gap:.7rem;padding:.75rem 1.1rem;cursor:pointer;color:var(--sonic-text);font-size:.92rem;border-bottom:1px solid rgba(0,240,255,.07)}
+.sonic-suggest-item:last-child{border-bottom:0}
+.sonic-suggest-item:hover,.sonic-suggest-item.sel{background:rgba(0,240,255,.10)}
+.sonic-suggest-item i{color:var(--sonic-neon);width:18px;text-align:center;flex:0 0 auto}
+.sonic-suggest-item .s-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-suggest-item .s-type{margin-left:auto;flex:0 0 auto;font-size:.62rem;text-transform:uppercase;letter-spacing:1px;color:var(--sonic-muted);border:1px solid var(--glass-border);padding:.15rem .5rem;border-radius:10px}
+.sonic-suggest mark{background:transparent;color:var(--sonic-neon);font-weight:700;text-shadow:0 0 8px rgba(0,240,255,.6)}
+.sonic-suggest.loading::after{content:'';position:absolute;top:10px;right:12px;width:14px;height:14px;border:2px solid var(--glass-border);border-top-color:var(--sonic-neon);border-radius:50%;animation:sonicSpin .8s linear infinite}

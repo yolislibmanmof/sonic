@@ -70,6 +70,7 @@ $sonic_page_icon     = $sonic_is_login_page ? 'fa-user-astronaut'
             </div>
         </div>
     </div>
+    <?php include __DIR__ . '/_member-dashboard.php'; ?>
     <?php endif; ?>
 
     <!-- ===== HOLOGRAPHIC AUTH FRAME ===== -->

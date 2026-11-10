@@ -1,11 +1,13 @@
-/* SONIC HERO — slider foto, HUD, mesin pencari */
-.sonic-hero{position:relative;padding:7rem 1.5rem 5rem;min-height:82vh;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center}
-.sonic-hero.compact{min-height:0;padding:2.2rem 1.5rem 3rem}
-.sonic-hero.compact .sonic-slider,.sonic-hero.compact .sonic-hud,.sonic-hero.compact .sonic-slider-arrow,.sonic-hero.compact .sonic-slider-dots{display:none}
-.sonic-slider{position:absolute;inset:0;z-index:0}
+/* SONIC HERO — fullscreen slider, welcome walk, mesin pencari */
+.sonic-hero{position:relative;padding:0;min-height:0;display:block;overflow:hidden;text-align:center}
+.sonic-hero.compact{min-height:0;padding:0}
+.sonic-hero.compact .sonic-slider,.sonic-hero.compact .sonic-hud,.sonic-hero.compact .sonic-slider-arrow,.sonic-hero.compact .sonic-slider-dots,.sonic-hero.compact .sonic-welcome-stage,.sonic-hero.compact .sonic-scroll-cue{display:none}
+
+/* ===== FULLSCREEN SLIDER ===== */
+.sonic-slider{position:relative;width:100%;height:100vh;min-height:600px;overflow:hidden;z-index:0}
 .sonic-slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transform:scale(1.12);transition:opacity 1.4s ease,transform 7s linear}
 .sonic-slide.active{opacity:1;transform:scale(1)}
-.sonic-slider-overlay{position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(0,240,255,.025) 0 1px,transparent 1px 4px),linear-gradient(180deg,rgba(3,5,10,.55),rgba(3,5,10,.85) 65%,var(--sonic-bg) 100%)}
+.sonic-slider-overlay{position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(0deg,rgba(0,240,255,.025) 0 1px,transparent 1px 4px),linear-gradient(180deg,rgba(3,5,10,.62) 0%,rgba(3,5,10,.30) 38%,rgba(3,5,10,.52) 72%,var(--sonic-bg) 100%)}
 .sonic-hud{position:absolute;width:56px;height:56px;border:2px solid rgba(0,240,255,.65);z-index:2;filter:drop-shadow(0 0 6px rgba(0,240,255,.6));pointer-events:none}
 .hud-tl{top:86px;left:22px;border-right:0;border-bottom:0}
 .hud-tr{top:86px;right:22px;border-left:0;border-bottom:0}
@@ -17,7 +19,36 @@
 .sonic-slider-dots{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:.5rem;z-index:3}
 .sonic-dot-btn{width:26px;height:4px;border:0;border-radius:2px;background:rgba(255,255,255,.25);cursor:pointer;transition:.3s;padding:0}
 .sonic-dot-btn.active{background:var(--sonic-neon);box-shadow:0 0 10px var(--sonic-neon);width:40px}
-.sonic-hero-content{position:relative;z-index:4;width:100%}
+.sonic-scroll-cue{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:3;color:var(--sonic-neon);font-size:1.35rem;opacity:.75;text-decoration:none;animation:sonicCue 1.9s ease-in-out infinite}
+.sonic-scroll-cue:hover{opacity:1}
+@keyframes sonicCue{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,9px)}}
+
+/* ===== WELCOME STAGE: siluet berjalan + teks ===== */
+.sonic-welcome-stage{position:absolute;inset:0;z-index:2;pointer-events:none}
+.sonic-welcome-text{position:absolute;left:50%;top:32%;transform:translateX(-50%);margin:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.5em .6em;width:max-content;max-width:92vw;font-family:'Orbitron',sans-serif;font-size:clamp(1rem,3.1vw,2.3rem);font-weight:800;letter-spacing:.16em}
+.sonic-welcome-word{opacity:0;background:linear-gradient(90deg,var(--sonic-neon) 0%,#ffffff 50%,var(--sonic-plasma) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 12px rgba(0,240,255,.45));animation:sonicWordIn 12s linear infinite;animation-delay:calc(var(--wi) * .7s)}
+@keyframes sonicWordIn{0%{opacity:0;transform:translateY(18px);filter:blur(8px)}4%{opacity:1;transform:translateY(0);filter:blur(0)}68%{opacity:1;transform:translateY(0)}76%{opacity:0;transform:translateY(-14px);filter:blur(6px)}100%{opacity:0;transform:translateY(-14px);filter:blur(6px)}}
+.sonic-walk-track{position:absolute;left:0;right:0;bottom:14%;height:150px}
+.sonic-walk-track::after{content:'';position:absolute;left:5%;right:5%;bottom:0;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,var(--sonic-neon),var(--sonic-plasma),transparent);opacity:.5;box-shadow:0 0 14px rgba(0,240,255,.5)}
+.sonic-walker{position:absolute;bottom:2px;left:0;width:74px;height:148px;opacity:0;transform:translateX(-15vw);animation:sonicWalkAcross 12s linear infinite;filter:drop-shadow(0 0 10px rgba(0,240,255,.55)) drop-shadow(0 0 24px rgba(255,0,170,.25))}
+@keyframes sonicWalkAcross{0%{transform:translateX(-15vw);opacity:0}3%{opacity:1}60%{transform:translateX(112vw);opacity:1}61%{opacity:0}100%{transform:translateX(112vw);opacity:0}}
+.sonic-walker-svg{display:block;width:100%;height:100%;animation:sonicBob .6s ease-in-out infinite}
+@keyframes sonicBob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+.w-part{transform-box:view-box}
+.w-leg,.w-arm{animation-duration:1.2s;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
+.w-leg{transform-origin:34px 62px}
+.w-arm{transform-origin:36px 32px}
+.w-leg-f{animation-name:sonicLegA}.w-leg-b{animation-name:sonicLegB}
+.w-arm-f{animation-name:sonicArmA}.w-arm-b{animation-name:sonicArmB}
+@keyframes sonicLegA{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-20deg)}}
+@keyframes sonicLegB{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(22deg)}}
+@keyframes sonicArmA{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(14deg)}}
+@keyframes sonicArmB{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-16deg)}}
+
+/* ===== HERO CONTENT (di bawah slider) ===== */
+.sonic-hero-content{position:relative;z-index:4;width:100%;padding:4.5rem 1.5rem 5rem}
+.sonic-hero-content:only-child{min-height:82vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7rem 1.5rem 5rem}
+.sonic-hero.compact .sonic-hero-content{padding:2.2rem 1.5rem 3rem;min-height:0;display:block}
 .sonic-hero-title{font-family:'Orbitron',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:900;margin-bottom:1rem;line-height:1.1}
 .sonic-hero-title .glow{background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-plasma),var(--sonic-neon));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sonicShine 4s linear infinite}
 @keyframes sonicShine{to{background-position:200% center}}
@@ -42,4 +73,11 @@
 .sonic-recent-label{color:var(--sonic-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
 .sonic-recent-label i{margin-right:.4rem;color:var(--sonic-neon)}
 .sonic-recent-list{display:flex;flex-wrap:wrap;gap:.4rem}
-@media (max-width:900px){.sonic-hero{min-height:70vh;padding:6rem 1rem 4rem}.sonic-slider-arrow{display:none}}
+@media (max-width:900px){
+.sonic-slider{height:86vh;min-height:500px}
+.sonic-slider-arrow{display:none}
+.sonic-welcome-text{top:26%}
+.sonic-walker{width:56px;height:112px}
+.sonic-walk-track{height:115px;bottom:12%}
+.sonic-hero-content{padding:3.5rem 1rem 4rem}
+}
