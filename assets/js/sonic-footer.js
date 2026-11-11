@@ -43,21 +43,6 @@ jQuery(function($) {
     
     observer.observe($footer[0]);
 
-    // ===== Back to Top Button =====
-    var $toTop = $('#sonicToTop');
-    
-    $(window).on('scroll', function() {
-        if ($(window).scrollTop() > 400) {
-            $toTop.addClass('show');
-        } else {
-            $toTop.removeClass('show');
-        }
-    });
-    
-    $toTop.on('click', function() {
-        $('html, body').animate({ scrollTop: 0 }, 800, 'swing');
-    });
-
     // ===== Smooth Scroll for Footer Links =====
     $('.sonic-footer-links a').on('click', function(e) {
         var href = $(this).attr('href');

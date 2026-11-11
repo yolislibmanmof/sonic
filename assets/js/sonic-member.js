@@ -1,5 +1,6 @@
 /**
- * SONIC MEMBER — count-up statistik + tilt holografik
+ * SONIC MEMBER — count-up statistik + tilt holografik + cinematic member login
+ * (konsolidasi: tidak ada file JS login terpisah)
  */
 jQuery(function ($) {
     'use strict';
@@ -28,3 +29,58 @@ jQuery(function ($) {
         card.addEventListener('mouseleave', function () { card.style.transform = ''; });
     }
 });
+
+/* ===== CINEMATIC MEMBER LOGIN (MISI 4) — hanya aktif di halaman login member ===== */
+(function () {
+    'use strict';
+    function isMemberLoginPage() {
+        var p = new URLSearchParams(window.location.search);
+        return p.get('p') === 'member' && !p.get('sec') && !document.getElementById('sonicHoloCard');
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+        if (!isMemberLoginPage()) return;
+        var frame = document.querySelector('.sonic-member-wrap .sonic-auth-frame');
+        if (!frame) return;
+        frame.classList.add('sonic-login-cinema');
+
+        // Banner uplink
+        var body = frame.querySelector('.sonic-auth-body');
+        if (body) {
+            var banner = document.createElement('div');
+            banner.className = 'sonic-login-banner';
+            banner.innerHTML = '<span class="t"><i class="fas fa-satellite-dish"></i> Member Portal // Secure Uplink</span>';
+            body.insertBefore(banner, body.firstChild);
+        }
+
+        // Toggle show/hide password
+        frame.querySelectorAll('input[type="password"]').forEach(function (pw) {
+            if (pw.dataset.sonicPw) return;
+            pw.dataset.sonicPw = '1';
+            var wrap = document.createElement('span');
+            wrap.className = 'sonic-pw-wrap';
+            pw.parentNode.insertBefore(wrap, pw);
+            wrap.appendChild(pw);
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'sonic-pw-toggle';
+            btn.setAttribute('aria-label', 'Toggle password visibility');
+            btn.innerHTML = '<i class="far fa-eye"></i>';
+            wrap.appendChild(btn);
+            btn.addEventListener('click', function () {
+                var show = pw.type === 'password';
+                pw.type = show ? 'text' : 'password';
+                btn.innerHTML = show ? '<i class="far fa-eye-slash"></i>' : '<i class="far fa-eye"></i>';
+                pw.focus();
+            });
+        });
+
+        // Loading state saat submit
+        var form = frame.querySelector('form');
+        if (form) {
+            form.addEventListener('submit', function () {
+                var sb = form.querySelector('input[type="submit"],button[type="submit"]');
+                if (sb) sb.classList.add('sonic-submit-loading');
+            });
+        }
+    });
+})();

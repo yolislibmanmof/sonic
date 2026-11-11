@@ -86,6 +86,9 @@ try {
     </section>
     <?php endif; ?>
 
+    <!-- MAP (dari Kustomisasi) -->
+    <?php include __DIR__ . '/_map.php'; ?>
+
     <!-- TOP READER (server-side) -->
     <?php if (count($sonic_readers) > 0): ?>
     <section class="sonic-section">
@@ -106,24 +109,4 @@ try {
         </ul>
     </section>
     <?php endif; ?>
-
-    <!-- PETA (opsional) -->
-    <?php if (!empty($sysconf['template']['sonic_map'])): ?>
-    <section class="sonic-section">
-        <div class="sonic-info-block" style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center;">
-            <iframe src="<?= $sysconf['template']['sonic_map_link'] ?>" height="420" frameborder="0" allowfullscreen></iframe>
-            <div>
-                <h3 class="sonic-section-title"><?= $sysconf['library_name'] ?></h3>
-                <p style="margin-bottom:1.5rem;"><?= $sysconf['template']['sonic_map_desc'] ?></p>
-                <div class="sonic-book-actions">
-                    <?php if (!empty($sysconf['template']['sonic_fb_link'])): ?><a target="_blank" href="<?= $sysconf['template']['sonic_fb_link'] ?>" class="sonic-mini-btn"><i class="fab fa-facebook-square"></i> Facebook</a><?php endif; ?>
-                    <?php if (!empty($sysconf['template']['sonic_twitter_link'])): ?><a target="_blank" href="<?= $sysconf['template']['sonic_twitter_link'] ?>" class="sonic-mini-btn"><i class="fab fa-twitter"></i> Twitter</a><?php endif; ?>
-                    <?php if (!empty($sysconf['template']['sonic_youtube_link'])): ?><a target="_blank" href="<?= $sysconf['template']['sonic_youtube_link'] ?>" class="sonic-mini-btn"><i class="fab fa-youtube"></i> YouTube</a><?php endif; ?>
-                    <?php if (!empty($sysconf['template']['sonic_instagram_link'])): ?><a target="_blank" href="<?= $sysconf['template']['sonic_instagram_link'] ?>" class="sonic-mini-btn"><i class="fab fa-instagram"></i> Instagram</a><?php endif; ?>
-                </div>
-            </div>
-        </div>
-    </section>
-    <?php endif; ?>
-
 </div>

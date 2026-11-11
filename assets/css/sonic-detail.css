@@ -139,3 +139,25 @@
 .sonic-avail-stats{grid-template-columns:1fr;gap:.5rem}
 .sonic-citation-grid{gap:1rem}
 }
+
+/* ===== DIGITAL LIBRARY DECK (Phase 2) ===== */
+.sonic-attach-deck .attachList{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.8rem}
+.sonic-attach-deck .attachList li{background:rgba(0,0,0,.3);border:1px solid var(--glass-border);border-left:3px solid var(--sonic-neon);border-radius:12px;padding:1rem 1.2rem;transition:.3s}
+.sonic-attach-deck .attachList li:hover{border-color:var(--sonic-neon);background:rgba(0,240,255,.06);transform:translateX(4px)}
+.sonic-attach-deck .attachList li a{color:var(--sonic-neon);font-weight:700;text-decoration:none}
+.sonic-attach-deck .attachList li a:hover{color:var(--sonic-plasma)}
+.sonic-attach-deck .attachment-desc{color:var(--sonic-muted);font-size:.85rem;margin-top:.3rem}
+.sonic-attach-deck .attachment-locked{border-left-color:var(--sonic-danger)}
+.sonic-attach-deck .attachment-locked a{color:var(--sonic-danger)}
+.sonic-related-deck table{width:100%;border-collapse:collapse}
+.sonic-related-deck th{color:var(--sonic-neon);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;text-align:left;padding:.7rem .8rem;border-bottom:1px solid var(--glass-border)}
+.sonic-related-deck td{padding:.7rem .8rem;border-bottom:1px solid rgba(0,240,255,.1);color:var(--sonic-text)}
+.sonic-related-deck tr:hover td{background:rgba(0,240,255,.05)}
+.sonic-related-deck a{color:var(--sonic-neon);text-decoration:none}
+.sonic-related-deck a:hover{color:var(--sonic-plasma)}
+
+/* ===== CITATION EXPORT ROW ===== */
+.sonic-cite-export{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;margin-top:1rem;padding-top:1rem;border-top:1px solid var(--glass-border)}
+.sonic-cite-export-label{color:var(--sonic-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-right:.3rem}
+.sonic-cite-export-label i{color:var(--sonic-neon);margin-right:.3rem}
+.sonic-cite-export .sonic-mini-btn{cursor:pointer}

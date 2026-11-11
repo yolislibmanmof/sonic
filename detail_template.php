@@ -1,7 +1,7 @@
 <?php
-/* @Filename: detail_template.php (SONIC v4 — Detail Record Revolution, scope-safe) */
+/* @Filename: detail_template.php (SONIC v5 — Detail Record Revolution FINAL, scope-safe) */
 
-/* ===== 1. DB BOOTSTRAP (template di-include dalam scope function => $dbs tidak otomatis ada) ===== */
+/* ===== 1. DB BOOTSTRAP ===== */
 if (!isset($dbs) || !is_object($dbs)) {
     $dbs = $GLOBALS['dbs'] ?? null;
     if ((!$dbs || !is_object($dbs)) && class_exists('\SLiMS\DB') && method_exists('\SLiMS\DB', 'getInstance')) {
@@ -53,7 +53,7 @@ if (!function_exists('sonic_similar_cover')) {
     }
 }
 
-/* ===== 3. COVER (filename mentah dari DB — $image_src sudah berupa URL thumbnail, tidak boleh dipakai) ===== */
+/* ===== 3. COVER ===== */
 $setBookmarked = trim(isset($_SESSION['bookmark'][$biblio_id]) ? 'active' : '');
 $sonic_cover_raw = '';
 if ($sonic_has_db) {
@@ -65,7 +65,6 @@ if ($sonic_has_db) {
 if ($sonic_cover_raw === '' && isset($image) && is_string($image) && $image !== '') {
     $sonic_cover_raw = $image;
 }
-/* Pengaman: jika file fisiknya tidak ada di images/docs, pakai default (anti placeholder WRONG CONTENT TYPE) */
 if ($sonic_cover_raw !== '' && !file_exists('./images/docs/' . $sonic_cover_raw)) {
     $sonic_cover_raw = '';
 }
@@ -73,7 +72,7 @@ $sonic_cover_url = !empty($sonic_cover_raw)
     ? './lib/minigalnano/createthumb.php?filename=' . urlencode('images/docs/' . $sonic_cover_raw) . '&width=600'
     : './lib/minigalnano/createthumb.php?filename=images/default/image.png&width=600';
 
-/* ===== 4. AVAILABILITY (DB-first, akurat) ===== */
+/* ===== 4. AVAILABILITY ===== */
 $sonic_total_items = 0; $sonic_borrowed_items = 0; $sonic_available_items = 0;
 if ($sonic_has_db) {
     try {
@@ -85,7 +84,7 @@ if ($sonic_has_db) {
     } catch (Throwable $e) { /* silent */ }
 }
 
-/* ===== 5. AUTHORS (DB-first, fallback parse string) ===== */
+/* ===== 5. AUTHORS ===== */
 $sonic_author_list = [];
 if ($sonic_has_db) {
     try {
@@ -101,7 +100,7 @@ if (count($sonic_author_list) === 0 && isset($authors) && is_string($authors) &&
 }
 $sonic_authors_string = sonic_format_authors($sonic_author_list);
 
-/* ===== 6. CITATIONS (INLINE) ===== */
+/* ===== 6. CITATIONS ===== */
 $sonic_year = $publish_year ?? date('Y');
 $sonic_title_clean = strip_tags(stripslashes($title ?? ''));
 $sonic_edition = $edition ?? '';
@@ -123,7 +122,7 @@ $sonic_citations['Turabian'] = $sonic_authors_string
     ? "{$sonic_authors_string}. <em>{$sonic_title_clean}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year}. {$sonic_gmd}."
     : "<em>{$sonic_title_clean}</em>. {$sonic_place}: {$sonic_publisher}, {$sonic_year}. {$sonic_gmd}.";
 
-/* ===== 7. SIMILAR BOOKS (DB-guarded) ===== */
+/* ===== 7. SIMILAR BOOKS ===== */
 $sonic_similar_books = [];
 if ($sonic_has_db) {
     try {
@@ -174,8 +173,26 @@ if ($sonic_has_db) {
 }
 ?>
 
+<style>
+/* Digital Library Deck (self-contained) */
+.sonic-attach-deck .attachList{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:.8rem}
+.sonic-attach-deck .attachList li{background:rgba(0,0,0,.3);border:1px solid var(--glass-border);border-left:3px solid var(--sonic-neon);border-radius:12px;padding:1rem 1.2rem;transition:.3s}
+.sonic-attach-deck .attachList li:hover{border-color:var(--sonic-neon);background:rgba(0,240,255,.06);transform:translateX(4px)}
+.sonic-attach-deck .attachList li a{color:var(--sonic-neon);font-weight:700;text-decoration:none}
+.sonic-attach-deck .attachList li a:hover{color:var(--sonic-plasma)}
+.sonic-attach-deck .attachment-desc{color:var(--sonic-muted);font-size:.85rem;margin-top:.3rem}
+.sonic-attach-deck .attachment-locked{border-left-color:var(--sonic-danger)}
+.sonic-attach-deck .attachment-locked a{color:var(--sonic-danger)}
+.sonic-related-deck table{width:100%;border-collapse:collapse}
+.sonic-related-deck th{color:var(--sonic-neon);text-transform:uppercase;font-size:.75rem;letter-spacing:1px;text-align:left;padding:.7rem .8rem;border-bottom:1px solid var(--glass-border)}
+.sonic-related-deck td{padding:.7rem .8rem;border-bottom:1px solid rgba(0,240,255,.1);color:var(--sonic-text)}
+.sonic-related-deck tr:hover td{background:rgba(0,240,255,.05)}
+.sonic-related-deck a{color:var(--sonic-neon);text-decoration:none}
+.sonic-related-deck a:hover{color:var(--sonic-plasma)}
+</style>
+
 <section class="sonic-detail-revolution">
-    <!-- LEFT SIDEBAR: 3D Book + Actions -->
+    <!-- LEFT SIDEBAR -->
     <div class="sonic-detail-sidebar">
         <div class="sonic-book-3d-container">
             <div class="sonic-book-3d" id="sonicBook3D">
@@ -242,7 +259,7 @@ if ($sonic_has_db) {
         </div>
     </div>
 
-    <!-- RIGHT MAIN CONTENT -->
+    <!-- RIGHT MAIN -->
     <div class="sonic-detail-main">
         <div class="sonic-detail-header">
             <p class="sonic-detail-category"><i class="fas fa-book"></i> <?= $gmd_name ?? '' ?></p>
@@ -263,6 +280,12 @@ if ($sonic_has_db) {
             <button class="sonic-tab" data-tab="details"><i class="fas fa-info-circle"></i> Detail</button>
             <button class="sonic-tab" data-tab="citations"><i class="fas fa-quote-right"></i> Sitasi</button>
             <button class="sonic-tab" data-tab="availability"><i class="fas fa-box"></i> Eksemplar</button>
+            <?php if (!empty($file_att)): ?>
+            <button class="sonic-tab" data-tab="digital"><i class="fas fa-file-download"></i> Digital</button>
+            <?php endif; ?>
+            <?php if (!empty($related)): ?>
+            <button class="sonic-tab" data-tab="editions"><i class="fas fa-code-branch"></i> Editions</button>
+            <?php endif; ?>
             <button class="sonic-tab" data-tab="comments"><i class="fas fa-comments"></i> Komentar</button>
             <?php if (count($sonic_similar_books) > 0): ?>
             <button class="sonic-tab" data-tab="similar"><i class="fas fa-layer-group"></i> Serupa (<?= count($sonic_similar_books) ?>)</button>
@@ -322,6 +345,12 @@ if ($sonic_has_db) {
                     <button class="sonic-cite-all" id="copyAllCitations">
                         <i class="fas fa-clipboard-list"></i> Copy Semua Sitasi
                     </button>
+                                        <div class="sonic-cite-export">
+                        <span class="sonic-cite-export-label"><i class="fas fa-file-export"></i> Export:</span>
+                        <button type="button" class="sonic-mini-btn" data-export="ris" title="Import ke Mendeley / Zotero / EndNote">RIS (.ris)</button>
+                        <button type="button" class="sonic-mini-btn" data-export="bibtex" title="Import ke BibTeX / LaTeX">BibTeX (.bib)</button>
+                        <button type="button" class="sonic-mini-btn" data-export="endnote" title="Import ke EndNote">EndNote (.enw)</button>
+                    </div>
                 </div>
             </div>
 
@@ -334,11 +363,29 @@ if ($sonic_has_db) {
                 </div>
             </div>
 
+            <?php if (!empty($file_att)): ?>
+            <div class="sonic-tab-panel" id="tab-digital">
+                <div class="sonic-info-block" id="attachment">
+                    <h5><i class="fas fa-file-download"></i> Digital Files / E-Book</h5>
+                    <div class="sonic-attach-deck"><?= $file_att ?></div>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <?php if (!empty($related)): ?>
+            <div class="sonic-tab-panel" id="tab-editions">
+                <div class="sonic-info-block">
+                    <h5><i class="fas fa-code-branch"></i> Other Editions / Related</h5>
+                    <div class="sonic-related-deck"><?= $related ?></div>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <div class="sonic-tab-panel" id="tab-comments">
                 <div class="sonic-info-block" id="comment">
                     <h5><?= __('Comments') ?></h5>
                     <div class="sonic-comments-section">
-                        <?= showComment($biblio_id) ?>
+                        <?= function_exists('showComment') ? showComment($biblio_id) : '<p style="color:var(--sonic-muted);font-style:italic;">' . __('Comments are disabled') . '</p>' ?>
                     </div>
                 </div>
             </div>
@@ -371,3 +418,31 @@ if ($sonic_has_db) {
     <i class="fas fa-check-circle"></i>
     <span id="copyToastText">Disalin!</span>
 </div>
+
+<script type="application/json" id="sonicCiteData"><?= json_encode([
+    'id'        => (int)$biblio_id,
+    'title'     => $sonic_title_clean,
+    'authors'   => array_values(array_column($sonic_author_list, 'author_name')),
+    'year'      => (string)$sonic_year,
+    'publisher' => $sonic_publisher,
+    'place'     => $sonic_place,
+    'edition'   => $sonic_edition,
+    'isbn'      => $isbn_issn ?? '',
+    'gmd'       => $sonic_gmd,
+    'url'       => 'http' . (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' ? 's' : '') . '://' . ($_SERVER['HTTP_HOST'] ?? 'localhost') . SWB . 'index.php?p=show_detail&id=' . (int)$biblio_id,
+], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
+<script>
+/* Auto-buka tab dari anchor (#attachment dari link login-attachment, #comment dari link komentar) */
+(function () {
+    function applyHash() {
+        var h = (window.location.hash || '').replace('#', '');
+        var map = { attachment: 'digital', comment: 'comments' };
+        if (map[h]) {
+            var btn = document.querySelector('.sonic-tab[data-tab="' + map[h] + '"]');
+            if (btn) btn.click();
+        }
+    }
+    window.addEventListener('load', applyHash);
+    window.addEventListener('hashchange', applyHash);
+})();
+</script>

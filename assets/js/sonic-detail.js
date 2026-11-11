@@ -169,3 +169,72 @@
 
     console.log('%c📚 SONIC Detail Record Revolution: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
 })();
+
+/* ===== CITATION EXPORT (RIS / BibTeX / EndNote) — fitur pemustaka akademis ===== */
+(function () {
+    'use strict';
+    var el = document.getElementById('sonicCiteData');
+    if (!el) return;
+    var d; try { d = JSON.parse(el.textContent); } catch (e) { return; }
+
+    function toast(msg) {
+        var t = document.getElementById('copyToast'), tx = document.getElementById('copyToastText');
+        if (t && tx) { tx.textContent = msg; t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 2500); }
+        else if (window.toastr) toastr.success(msg);
+    }
+    function buildRIS() {
+        var L = ['TY  - BOOK'];
+        (d.authors || []).forEach(function (a) { L.push('AU  - ' + a); });
+        L.push('TI  - ' + d.title);
+        if (d.edition) L.push('ET  - ' + d.edition);
+        if (d.place) L.push('CY  - ' + d.place);
+        if (d.publisher) L.push('PB  - ' + d.publisher);
+        if (d.year) L.push('PY  - ' + d.year);
+        if (d.isbn) L.push('SN  - ' + d.isbn);
+        L.push('UR  - ' + d.url, 'ER  - ');
+        return L.join('\r\n');
+    }
+    function bibKey() {
+        var a = (d.authors && d.authors[0]) ? d.authors[0].split(' ').pop() : 'anon';
+        return ((a + (d.year || '')).replace(/[^a-zA-Z0-9]/g, '').toLowerCase()) || 'book';
+    }
+    function buildBib() {
+        var L = ['@book{' + bibKey() + ','];
+        L.push('  title     = {' + d.title + '},');
+        if (d.authors && d.authors.length) L.push('  author    = {' + d.authors.join(' and ') + '},');
+        if (d.year) L.push('  year      = {' + d.year + '},');
+        if (d.publisher) L.push('  publisher = {' + d.publisher + '},');
+        if (d.place) L.push('  address   = {' + d.place + '},');
+        if (d.edition) L.push('  edition   = {' + d.edition + '},');
+        if (d.isbn) L.push('  isbn      = {' + d.isbn + '},');
+        L.push('  url       = {' + d.url + '}', '}');
+        return L.join('\n');
+    }
+    function buildEN() {
+        var L = ['%0 Book'];
+        (d.authors || []).forEach(function (a) { L.push('%A ' + a); });
+        L.push('%T ' + d.title);
+        if (d.edition) L.push('%E ' + d.edition);
+        if (d.place) L.push('%C ' + d.place);
+        if (d.publisher) L.push('%I ' + d.publisher);
+        if (d.year) L.push('%D ' + d.year);
+        if (d.isbn) L.push('%@ ' + d.isbn);
+        L.push('%U ' + d.url);
+        return L.join('\r\n');
+    }
+    function download(name, content, mime) {
+        var blob = new Blob([content], { type: (mime || 'text/plain') + ';charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob); a.download = name;
+        document.body.appendChild(a); a.click();
+        setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 150);
+    }
+    document.addEventListener('click', function (e) {
+        var b = e.target.closest ? e.target.closest('[data-export]') : null;
+        if (!b) return;
+        var t = b.getAttribute('data-export'), base = 'sonic-' + (d.id || 'book');
+        if (t === 'ris') { download(base + '.ris', buildRIS(), 'application/x-research-info-systems'); toast('RIS diunduh — siap impor ke Mendeley/Zotero'); }
+        else if (t === 'bibtex') { download(base + '.bib', buildBib(), 'application/x-bibtex'); toast('BibTeX diunduh — siap dipakai di LaTeX'); }
+        else if (t === 'endnote') { download(base + '.enw', buildEN(), 'application/x-endnote-refer'); toast('EndNote diunduh — siap impor ke EndNote'); }
+    });
+})();

@@ -183,3 +183,28 @@
     .sonic-auth-status{margin-left:0;margin-top:.8rem}
     .sonic-auth-corner{width:28px;height:28px}
 }
+
+/* ===== LOGIN FINAL — autofill rescue + cinematic member portal ===== */
+.sonic-auth-body input:-webkit-autofill,
+.sonic-auth-body input:-webkit-autofill:hover,
+.sonic-auth-body input:-webkit-autofill:focus{
+  -webkit-box-shadow:0 0 0 1000px rgba(5,8,15,.9) inset;
+  -webkit-text-fill-color:var(--sonic-text);
+  caret-color:var(--sonic-neon);
+  border:1px solid var(--glass-border);
+  transition:background-color 9999s ease-in-out 0s;
+}
+.sonic-auth-frame.sonic-login-cinema{position:relative;overflow:hidden;border-color:var(--sonic-electric)}
+.sonic-auth-frame.sonic-login-cinema::after{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;background:linear-gradient(120deg,var(--sonic-neon),var(--sonic-electric),var(--sonic-plasma),var(--sonic-neon));background-size:300% 300%;-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;animation:sonicLoginBorder 6s linear infinite;pointer-events:none}
+@keyframes sonicLoginBorder{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+.sonic-login-banner{position:relative;margin:-.5rem 0 1.4rem;padding:.9rem 1.2rem;border:1px solid var(--glass-border);border-radius:12px;background:linear-gradient(90deg,rgba(0,240,255,.08),rgba(91,0,255,.08));overflow:hidden}
+.sonic-login-banner .t{font-family:'Orbitron',sans-serif;font-size:.8rem;letter-spacing:3px;color:var(--sonic-neon);text-transform:uppercase}
+.sonic-login-banner .t i{margin-right:.5rem}
+.sonic-login-banner::after{content:'';position:absolute;top:0;bottom:0;width:40%;left:-40%;background:linear-gradient(90deg,transparent,rgba(0,240,255,.15),transparent);animation:sonicLoginSweep 3s linear infinite}
+@keyframes sonicLoginSweep{0%{left:-40%}100%{left:100%}}
+.sonic-pw-wrap{position:relative;display:block}
+.sonic-pw-toggle{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--sonic-muted);cursor:pointer;font-size:1rem;padding:.3rem;transition:.2s;z-index:2}
+.sonic-pw-toggle:hover{color:var(--sonic-neon)}
+.sonic-pw-wrap input{padding-right:2.6rem!important}
+.sonic-auth-body .sonic-submit-loading{position:relative;pointer-events:none;opacity:.85}
+.sonic-auth-body .sonic-submit-loading::after{content:'';display:inline-block;width:14px;height:14px;margin-left:.5rem;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sonicSpin .7s linear infinite;vertical-align:middle}

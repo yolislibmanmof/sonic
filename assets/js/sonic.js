@@ -157,3 +157,49 @@ document.addEventListener('DOMContentLoaded', function () {
 
     console.log('%c⚡ SONIC OPAC v2 ⚡', 'color:#00f0ff;font-size:28px;font-weight:900;text-shadow:0 0 20px #00f0ff;');
 });
+
+/* ===== SMART NAVBAR OVERFLOW (Priority+) — navbar selalu rapi satu baris ===== */
+(function () {
+    'use strict';
+    var nav = document.getElementById('sonicNav');
+    if (!nav) return;
+    var moreLi = null, moreMenu = null;
+
+    function buildMore() {
+        if (moreLi) return;
+        moreLi = document.createElement('li');
+        moreLi.className = 'dropdown sonic-nav-more';
+        moreLi.innerHTML = '<a class="nav-link dropdown-toggle" href="#" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="Menu lainnya"><i class="fas fa-ellipsis-h"></i></a><div class="dropdown-menu dropdown-menu-right"></div>';
+        moreMenu = moreLi.querySelector('.dropdown-menu');
+        var prot = nav.querySelector('.sonic-nav-protected');
+        if (prot) nav.insertBefore(moreLi, prot); else nav.appendChild(moreLi);
+    }
+    function menuItems() { return Array.prototype.slice.call(nav.querySelectorAll(':scope > li.sonic-nav-item')); }
+    function restoreAll() {
+        if (!moreMenu) return;
+        var moved = Array.prototype.slice.call(moreMenu.querySelectorAll('li.sonic-nav-item'));
+        moved.sort(function (a, b) { return (+a.dataset.idx) - (+b.dataset.idx); });
+        moved.forEach(function (li) { nav.insertBefore(li, moreLi); });
+        moreMenu.innerHTML = '';
+    }
+    function layout() {
+        if (window.innerWidth <= 900) { if (moreLi) { restoreAll(); moreLi.style.display = 'none'; } return; }
+        buildMore();
+        moreLi.style.display = '';
+        restoreAll();
+        menuItems().forEach(function (li, i) { li.dataset.idx = i; });
+        var guard = 0;
+        while (nav.scrollWidth > nav.clientWidth + 1 && guard < 60) {
+            var vis = menuItems().filter(function (li) { return li.parentNode === nav; });
+            if (vis.length <= 1) break;
+            moreMenu.appendChild(vis[vis.length - 1]);
+            guard++;
+        }
+        moreLi.style.display = moreMenu.children.length ? '' : 'none';
+    }
+    var rt = null;
+    window.addEventListener('resize', function () { clearTimeout(rt); rt = setTimeout(layout, 120); });
+    window.addEventListener('load', layout);
+    if (document.readyState === 'complete') layout();
+    else document.addEventListener('DOMContentLoaded', layout);
+})();

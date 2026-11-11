@@ -1,5 +1,18 @@
 <?php
-# @Filename: footer.php (SONIC v4.2 — No Chat Buttons)
+# @Filename: footer.php (SONIC v4.3 — Live Stats, No Chat Buttons)
+
+/* ===== LIVE STATS (read-only, guarded) ===== */
+$sonic_stats = ['collections' => 0, 'members' => 0, 'downloads' => 0, 'hours' => 24];
+if (isset($dbs) && is_object($dbs)) {
+    try {
+        $r = $dbs->query('SELECT COUNT(*) FROM biblio');
+        if ($r) $sonic_stats['collections'] = (int)$r->fetch_row()[0];
+        $r = $dbs->query("SELECT COUNT(*) FROM member WHERE expire_date >= CURDATE()");
+        if ($r) $sonic_stats['members'] = (int)$r->fetch_row()[0];
+        $r = $dbs->query('SELECT COUNT(*) FROM biblio_attachment');
+        if ($r) $sonic_stats['downloads'] = (int)$r->fetch_row()[0];
+    } catch (Throwable $e) { /* silent: tetap tampil 0 bila tabel tak ada */ }
+}
 ?>
 
 <footer class="sonic-footer" id="sonicFooter">
@@ -13,28 +26,28 @@
                 <div class="sonic-stat-card">
                     <div class="sonic-stat-icon"><i class="fas fa-book"></i></div>
                     <div class="sonic-stat-content">
-                        <span class="sonic-stat-number" data-target="12547">0</span>
+                        <span class="sonic-stat-number" data-target="<?= (int)$sonic_stats['collections'] ?>">0</span>
                         <span class="sonic-stat-label"><?= __('Total Collections') ?></span>
                     </div>
                 </div>
                 <div class="sonic-stat-card">
                     <div class="sonic-stat-icon"><i class="fas fa-users"></i></div>
                     <div class="sonic-stat-content">
-                        <span class="sonic-stat-number" data-target="3842">0</span>
+                        <span class="sonic-stat-number" data-target="<?= (int)$sonic_stats['members'] ?>">0</span>
                         <span class="sonic-stat-label"><?= __('Active Members') ?></span>
                     </div>
                 </div>
                 <div class="sonic-stat-card">
                     <div class="sonic-stat-icon"><i class="fas fa-download"></i></div>
                     <div class="sonic-stat-content">
-                        <span class="sonic-stat-number" data-target="15623">0</span>
+                        <span class="sonic-stat-number" data-target="<?= (int)$sonic_stats['downloads'] ?>">0</span>
                         <span class="sonic-stat-label"><?= __('Downloads') ?></span>
                     </div>
                 </div>
                 <div class="sonic-stat-card">
                     <div class="sonic-stat-icon"><i class="fas fa-clock"></i></div>
                     <div class="sonic-stat-content">
-                        <span class="sonic-stat-number" data-target="24">0</span>
+                        <span class="sonic-stat-number" data-target="<?= (int)$sonic_stats['hours'] ?>">0</span>
                         <span class="sonic-stat-label"><?= __('Hours Online') ?></span>
                     </div>
                 </div>
@@ -60,11 +73,10 @@
                 <p class="sonic-footer-desc"><?= $sysconf['template']['sonic_footer_about_us'] ?? __('Digital library with lightning-fast access') ?></p>
                 
                 <div class="sonic-social-links">
-                    <a href="#" class="sonic-social-btn" title="Facebook"><i class="fab fa-facebook-f"></i></a>
-                    <a href="#" class="sonic-social-btn" title="Twitter"><i class="fab fa-twitter"></i></a>
-                    <a href="#" class="sonic-social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
-                    <a href="#" class="sonic-social-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
-                    <a href="#" class="sonic-social-btn" title="Telegram"><i class="fab fa-telegram-plane"></i></a>
+                <a href="<?= htmlspecialchars($sysconf['template']['sonic_fb_link'] ?: '#') ?>" target="_blank" rel="noopener" class="sonic-social-btn" title="Facebook"><i class="fab fa-facebook-f"></i></a>
+                <a href="<?= htmlspecialchars($sysconf['template']['sonic_twitter_link'] ?: '#') ?>" target="_blank" rel="noopener" class="sonic-social-btn" title="Twitter"><i class="fab fa-twitter"></i></a>
+                 <a href="<?= htmlspecialchars($sysconf['template']['sonic_instagram_link'] ?: '#') ?>" target="_blank" rel="noopener" class="sonic-social-btn" title="Instagram"><i class="fab fa-instagram"></i></a>
+                 <a href="<?= htmlspecialchars($sysconf['template']['sonic_youtube_link'] ?: '#') ?>" target="_blank" rel="noopener" class="sonic-social-btn" title="YouTube"><i class="fab fa-youtube"></i></a>
                 </div>
             </div>
 
@@ -109,7 +121,7 @@
                 <div class="sonic-footer-contact">
                     <h5 class="sonic-contact-title"><i class="fas fa-headset"></i> <?= __('Need Help?') ?></h5>
                     <p class="sonic-contact-text"><?= __('Our team is ready to assist you') ?></p>
-                    <a href="mailto:library@example.com" class="sonic-contact-btn"><i class="fas fa-envelope"></i> library@example.com</a>
+                    <a href="mailto:<?= $sysconf['template']['sonic_contact_email'] ?? 'library@example.com' ?>" class="sonic-contact-btn"><i class="fas fa-envelope"></i> <?= $sysconf['template']['sonic_contact_email'] ?? 'library@example.com' ?></a>
                 </div>
 
                 <div class="sonic-footer-actions">
