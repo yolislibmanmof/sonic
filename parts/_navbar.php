@@ -1,12 +1,12 @@
 <?php
-# @Filename: _navbar.php (SONIC v5 — extra menus grouped into dropdown)
+# @Filename: _navbar.php (SONIC v6 — Profil menu + Help moved to extra)
 
 $main_menus = [
-    'home'      => ['text' => __('Home'),       'url' => 'index.php',            'icon' => 'fas fa-home'],
-    'libinfo'   => ['text' => __('Information'),'url' => 'index.php?p=libinfo',  'icon' => 'fas fa-info-circle'],
-    'news'      => ['text' => __('News'),       'url' => 'index.php?p=news',     'icon' => 'fas fa-newspaper'],
-    'help'      => ['text' => __('Help'),       'url' => 'index.php?p=help',     'icon' => 'fas fa-question-circle'],
-    'librarian' => ['text' => __('Librarian'),  'url' => 'index.php?p=librarian','icon' => 'fas fa-user-shield']
+    'home'      => ['text' => __('Home'),        'url' => 'index.php',                      'icon' => 'fas fa-home',        'p' => ''],
+    'profil'    => ['text' => sonic_t('Library Profile'), 'url' => 'index.php?p=libinfo&sec=profil', 'icon' => 'fas fa-landmark', 'p' => 'libinfo', 'sec' => 'profil'],
+    'libinfo'   => ['text' => __('Information'), 'url' => 'index.php?p=libinfo',            'icon' => 'fas fa-info-circle', 'p' => 'libinfo', 'sec' => ''],
+    'news'      => ['text' => __('News'),        'url' => 'index.php?p=news',               'icon' => 'fas fa-newspaper',   'p' => 'news'],
+    'librarian' => ['text' => __('Librarian'),   'url' => 'index.php?p=librarian',          'icon' => 'fas fa-user-shield', 'p' => 'librarian'],
 ];
 
 /* ===== Extra menus dari Kustomisasi ===== */
@@ -16,11 +16,7 @@ $_sonic_icon_map = [
     'news'=>'fas fa-newspaper','help'=>'fas fa-question-circle','librarian'=>'fas fa-user-shield',
     'member'=>'fas fa-user-astronaut','visitor'=>'fas fa-clipboard-user',
 ];
-$_sonic_raw_menus = (string)($sysconf['template']['sonic_extra_menus'] ?? '');
-/* Recovery: core SLiMS menghapus newline → pisahkan kembali sebelum tiap index.php? yang menempel */
-$_sonic_raw_menus = preg_replace('/(?<![|,\s;])(index\.php\?)/i', ',$1', $_sonic_raw_menus);
-$_sonic_raw_menus = ltrim($_sonic_raw_menus, ",; \t");
-foreach (preg_split('/[,;\r\n]+/', $_sonic_raw_menus) as $_line) {
+foreach (preg_split('/\r\n|\r|\n/', (string)($sysconf['template']['sonic_extra_menus'] ?? '')) as $_line) {
     $_line = trim($_line);
     if ($_line === '') continue;
     if (strpos($_line, '|') !== false) { list($_lb, $_url) = array_map('trim', explode('|', $_line, 2)); }
@@ -35,11 +31,19 @@ foreach (preg_split('/[,;\r\n]+/', $_sonic_raw_menus) as $_line) {
     }
     $sonic_extra_menus[] = ['text'=>$_lb, 'url'=>$_url, 'icon'=>$_sonic_icon_map[$_p] ?? 'fas fa-link', 'p'=>$_p];
 }
+/* Bantuan selalu masuk dropdown "Lainnya" (di depan menu kustom) */
+$sonic_extra_menus = array_merge([
+    ['text' => __('Help'), 'url' => 'index.php?p=help', 'icon' => 'fas fa-question-circle', 'p' => 'help'],
+], $sonic_extra_menus);
+
 $sonic_group_label = $sysconf['template']['sonic_extra_menu_label'] ?? __('More');
 $sonic_group_active = '';
 foreach ($sonic_extra_menus as $em) {
     if (isset($_GET['p']) && $em['p'] !== '' && $em['p'] === $_GET['p']) { $sonic_group_active = 'active'; break; }
 }
+
+$cur_p = $_GET['p'] ?? '';
+$cur_s = $_GET['sec'] ?? '';
 ?>
 <div class="sonic-progress" id="sonicProgress"></div>
 
@@ -66,11 +70,13 @@ foreach ($sonic_extra_menus as $em) {
 
         <ul class="sonic-nav" id="sonicNav">
             <?php foreach ($main_menus as $key => $main_menu):
-                $active = '';
-                if (isset($_GET['p']) && $key === $_GET['p']) $active = 'active';
-                elseif (!isset($_GET['p']) && $key === 'home') $active = 'active';
+                $mp = $main_menu['p'] ?? $key;
+                $ms = $main_menu['sec'] ?? null;
+                if ($key === 'home')            $active = ($cur_p === '');
+                elseif ($ms === null)           $active = ($cur_p === $mp);
+                else                            $active = ($cur_p === $mp && $cur_s === $ms);
             ?>
-            <li class="<?= $active ?> sonic-nav-item">
+            <li class="<?= $active ? 'active' : '' ?> sonic-nav-item">
                 <a href="<?= $main_menu['url'] ?>" title="<?= htmlspecialchars($main_menu['text']) ?>"><i class="<?= $main_menu['icon'] ?>"></i><span class="sonic-nav-label"><?= $main_menu['text'] ?></span></a>
             </li>
             <?php endforeach; ?>
@@ -78,7 +84,7 @@ foreach ($sonic_extra_menus as $em) {
             <?php if (count($sonic_extra_menus) > 0): ?>
             <li class="dropdown sonic-nav-group <?= $sonic_group_active ?>">
                 <a class="nav-link dropdown-toggle" href="#" id="sonicExtraMenuBtn" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" title="<?= htmlspecialchars($sonic_group_label) ?>">
-                    <i class="fas fa-layer-group"></i><span class="sonic-nav-label"><?= htmlspecialchars($sonic_group_label) ?></span><i class="fas fa-chevron-down sonic-caret"></i>
+                <i class="fas fa-layer-group"></i><span class="sonic-nav-label"><?= htmlspecialchars(sonic_t($sonic_group_label)) ?></span><i class="fas fa-chevron-down sonic-caret"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right sonic-group-menu" aria-labelledby="sonicExtraMenuBtn">
                     <?php foreach ($sonic_extra_menus as $em):

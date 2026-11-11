@@ -21,8 +21,15 @@ $sysconf['template']['theme'] = 'sonic';
 
 /* ===== DEFAULTS (guarded: nilai dari Kustomisasi/DB selalu menang) ===== */
 $sonic_defaults = [
+    'sonic_profile_vision' => '',
+    'sonic_profile_mission' => '',
+    'sonic_profile_year' => '',
+    'sonic_profile_accreditation' => '',
     'sonic_neon_mode' => true,
     'sonic_particles' => true,
+    'sonic_welcome_text' => 'SELAMAT DATANG DI LAYANAN OPAC PERPUSTAKAAN',
+    'sonic_particle' => 'books',
+    'sonic_walker' => 'person',
     'sonic_popular_collection' => 1,
     'sonic_new_collection' => 1,
     'sonic_top_reader' => 1,
@@ -50,8 +57,15 @@ $sysconf['visitor_log_voice'] = 1;
 
 /* ===== SLiMS CUSTOMIZER SCHEMA (wajib agar tombol Kustomisasi hidup) ===== */
 $sysconf['template']['option']['sonic'] = [
+    'pvision' => ['dbfield'=>'sonic_profile_vision','label'=>'Profile: Vision','type'=>'longtext','default'=>'','width'=>90,'max'=>600],
+    'pmission'=> ['dbfield'=>'sonic_profile_mission','label'=>'Profile: Mission — separate each point with || or number them (1. 2. 3.)','type'=>'longtext','default'=>'','width'=>90,'max'=>1000],
+    'pyear'   => ['dbfield'=>'sonic_profile_year','label'=>'Profile: Founding Year','type'=>'text','default'=>'','width'=>40,'max'=>20],
+    'paccred' => ['dbfield'=>'sonic_profile_accreditation','label'=>'Profile: Accreditation Status','type'=>'text','default'=>'','width'=>60,'max'=>80],
     'subname'   => ['dbfield'=>'sonic_library_subname','label'=>'Library Subname','type'=>'text','default'=>'Hyperdrive Library System','width'=>80,'max'=>120],
     'about'     => ['dbfield'=>'sonic_footer_about_us','label'=>'Footer About Us','type'=>'longtext','default'=>'Perpustakaan digital dengan akses kecepatan cahaya.','width'=>90,'max'=>500],
+    'welcome'  => ['dbfield'=>'sonic_welcome_text','label'=>'Hero Welcome Text (space-separated words)','type'=>'longtext','default'=>'SELAMAT DATANG DI LAYANAN OPAC PERPUSTAKAAN','width'=>90,'max'=>200],
+    'particle' => ['dbfield'=>'sonic_particle','label'=>'Background Particle Style','type'=>'dropdown','default'=>'books','data'=>[['books','Floating Book Pages'],['stars','Twinkling Stars'],['bolts','Lightning Bolts'],['mixed','Mixed Cosmos'],['none','Disabled']]],
+    'walker'   => ['dbfield'=>'sonic_walker','label'=>'Hero Walker Animation','type'=>'dropdown','default'=>'person','data'=>[['person','Neon Person'],['robot','Neon Robot'],['astronaut','Astronaut'],['none','Disabled']]],
     'email'     => ['dbfield'=>'sonic_contact_email','label'=>'Contact Email','type'=>'text','default'=>'library@example.com','width'=>60,'max'=>120],
     'fb'        => ['dbfield'=>'sonic_fb_link','label'=>'Facebook URL','type'=>'text','default'=>'','width'=>80,'max'=>250],
     'tw'        => ['dbfield'=>'sonic_twitter_link','label'=>'Twitter / X URL','type'=>'text','default'=>'','width'=>80,'max'=>250],

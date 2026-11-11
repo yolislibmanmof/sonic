@@ -37,3 +37,4 @@
 .sonic-topic-icon{width:60px;height:60px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(91,0,255,.15));border-radius:16px;font-size:1.6rem;color:var(--sonic-neon)}
 .sonic-topic-label{font-size:.9rem;font-weight:600;text-align:center}
 @media (max-width:768px){.sonic-list-card{grid-template-columns:100px 1fr}.sonic-list-actions{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}}
+.sonic-topic-icon img{width:44px;height:44px;object-fit:contain}

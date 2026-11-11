@@ -149,3 +149,117 @@ function truncate($text, $length) {
 function getQuery($key, $optional = '') {
     return isset($_GET[$key]) ? utility::filterData($key, 'get', true, true, true) : $optional;
 }
+
+/* ===== SONIC i18n: terjemahan string kustom template ===== */
+if (!function_exists('sonic_t')) {
+    function sonic_t($en) {
+        static $map = [
+            // Home
+            'Library Information' => 'Informasi Perpustakaan',
+            'Library Profile' => 'Profil Perpustakaan',
+            'Vision, mission, history and accreditation of our library' => 'Visi, misi, sejarah, dan akreditasi perpustakaan kami',
+            'Vision' => 'Visi',
+            'Mission' => 'Misi',
+            'Founding Year' => 'Tahun Pendirian',
+            'Accreditation Status' => 'Status Akreditasi',
+            'Profile content is not set yet. Please fill it in Theme Customization.' => 'Konten profil belum diisi. Silakan isi melalui Kustomisasi Tema.',
+            'Select the topic you are interested in' => 'Pilih subjek yang menarik bagi Anda',
+            'Navigate through knowledge domains'     => 'Jelajahi ranah pengetahuan',
+            'Literature'      => 'Kesusastraan',
+            'Social Sciences' => 'Ilmu-Ilmu Sosial',
+            'Applied Sciences'=> 'Ilmu-Ilmu Terapan',
+            'Art & Recreation'=> 'Kesenian, Hiburan, dan Olahraga',
+            'see more..'      => 'lihat lainnya..',
+            'Popular among our collection'      => 'Populer di antara koleksi kami',
+            "Our library's top-borrowed titles" => 'Judul paling banyak dipinjam perpustakaan kami',
+            'New collections + updated'         => 'Koleksi baru dan diperbarui',
+            'Fresh additions to our database'   => 'Tambahan terbaru ke basis data kami',
+            'Top reader of the year'            => 'Pembaca teratas tahun ini',
+            'Our most active scholars'          => 'Cendekiawan paling aktif kami',
+            'borrowed' => 'dipinjam',
+            'updated'  => 'diperbarui',
+            // Footer
+            'Total Collections' => 'Total Koleksi',
+            'Active Members'    => 'Anggota Aktif',
+            'Downloads'         => 'Unduhan',
+            'Hours Online'      => 'Jam Online',
+            'Quick Links'       => 'Tautan Cepat',
+            'Our Services'      => 'Layanan Kami',
+            'Quick Search'      => 'Pencarian Cepat',
+            'Search collections...' => 'Cari koleksi...',
+            'Need Help?'        => 'Butuh Bantuan?',
+            'Our team is ready to assist you' => 'Tim kami siap membantu Anda',
+            'Support SLiMS'     => 'Dukung SLiMS',
+            'Contribute'        => 'Berkontribusi',
+            'All rights reserved' => 'Hak cipta dilindungi',
+            'Powered by'        => 'Didukung oleh',
+            'Template'          => 'Templat',
+            'Secure'            => 'Aman',
+            'Fast'              => 'Cepat',
+            'Responsive'        => 'Responsif',
+            'Digital Collections' => 'Koleksi Digital',
+            'E-Books'           => 'E-Book',
+            'Journals'          => 'Jurnal',
+            'Thesis & Dissertations' => 'Tesis & Disertasi',
+            'Interlibrary Loan' => 'Pinjam Antar Perpustakaan',
+            'Reference Service' => 'Layanan Referensi',
+            'Digital library with lightning-fast access' => 'Perpustakaan digital dengan akses kecepatan cahaya.',
+            // Navbar dropdown "More/Lainnya" (dua arah: EN<->ID)
+            'More' => 'Lainnya',
+        ];
+        static $reverse = [
+            'Lainnya' => 'More',
+        ];
+        $lang = $_COOKIE['select_lang'] ?? ($GLOBALS['sysconf']['default_lang'] ?? 'en_US');
+        $is_id = (stripos($lang, 'id') === 0);
+        if ($is_id && isset($map[$en])) return $map[$en];
+        if (!$is_id && isset($reverse[$en])) return $reverse[$en];
+        return __($en);
+    }
+}
+
+/* ===== SONIC i18n: terjemahan konten libinfo (markup bawaan SLiMS) ===== */
+if (!function_exists('sonic_translate_html')) {
+    function sonic_translate_html($html) {
+        $lang = $_COOKIE['select_lang'] ?? ($GLOBALS['sysconf']['default_lang'] ?? 'en_US');
+        if (stripos($lang, 'id') !== 0) return $html;
+
+        /* Label & judul seksi (cocok-persis aman) */
+        $map = [
+            'Contact Information' => 'Informasi Kontak',
+            'Address :'           => 'Alamat :',
+            'Phone Number :'      => 'Nomor Telepon :',
+            'Fax Number :'        => 'Nomor FAX :',
+            'Email :'             => 'Surel :',
+            'Opening Hours'       => 'Jam Buka',
+            'Monday - Friday :'   => 'Senin - Jumat :',
+            'Monday :'            => 'Senin :',
+            'Tuesday :'           => 'Selasa :',
+            'Wednesday :'         => 'Rabu :',
+            'Thursday :'          => 'Kamis :',
+            'Friday :'            => 'Jumat :',
+            'Saturday :'          => 'Sabtu :',
+            'Sunday :'            => 'Minggu :',
+            'Open :'              => 'Buka :',
+            'Break :'             => 'Istirahat :',
+            'Close :'             => 'Tutup :',
+            'Collections'         => 'Koleksi',
+            'Library Membership'  => 'Keanggotaan Perpustakaan',
+        ];
+        $html = str_replace(array_keys($map), array_values($map), $html);
+
+        /* Paragraf panjang: regex toleran terhadap variasi teks/whitespace inti SLiMS */
+        $html = preg_replace(
+            '/We\s+have\s+many\s+types\s+of\s+collections.*?magazines\./is',
+            'Kami memiliki berbagai jenis koleksi di perpustakaan kami, mulai dari Fiksi hingga Materi Sains, dari bahan cetak hingga koleksi digital seperti CD-ROM, CD, VCD, dan DVD. Kami juga mengumpulkan terbitan berkala harian seperti surat kabar serta terbitan berkala bulanan seperti majalah.',
+            $html
+        );
+        $html = preg_replace(
+            '/To\s+be\s+able\s+to\s+loan\s+our\s+library\s+collections.*?obey\./is',
+            'Untuk dapat meminjam koleksi perpustakaan kami, Anda harus terlebih dahulu menjadi anggota perpustakaan. Ada syarat dan ketentuan yang harus Anda patuhi.',
+            $html
+        );
+
+        return $html;
+    }
+}

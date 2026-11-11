@@ -1,5 +1,5 @@
 <?php
-# @Filename: _home.php (SONIC v3 — server-side, anti-gagal)
+# @Filename: _home.php (SONIC v4 FINAL — i18n ready, Dewey images, map included)
 include '_navbar.php';
 include '_search-form.php';
 
@@ -27,32 +27,32 @@ try {
 
     <!-- TOPIK -->
     <section class="sonic-section">
-        <h3 class="sonic-section-title"><?= __('Select the topic you are interested in') ?></h3>
-        <p class="sonic-section-sub"><?= __('Navigate through knowledge domains') ?></p>
+        <h3 class="sonic-section-title"><?= sonic_t('Select the topic you are interested in') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t('Navigate through knowledge domains') ?></p>
         <ul class="sonic-topics">
             <li><a href="index.php?callnumber=8&search=search" class="sonic-topic">
-                <div class="sonic-topic-icon"><i class="fas fa-book-open"></i></div>
-                <span class="sonic-topic-label"><?= __('Literature') ?></span></a></li>
+                <div class="sonic-topic-icon"><img src="<?= assets('images/8-books.png') ?>" alt="" onerror="this.style.display='none'"></div>
+                <span class="sonic-topic-label"><?= sonic_t('Literature') ?></span></a></li>
             <li><a href="index.php?callnumber=3&search=search" class="sonic-topic">
-                <div class="sonic-topic-icon"><i class="fas fa-graduation-cap"></i></div>
-                <span class="sonic-topic-label"><?= __('Social Sciences') ?></span></a></li>
+                <div class="sonic-topic-icon"><img src="<?= assets('images/3-diploma.png') ?>" alt="" onerror="this.style.display='none'"></div>
+                <span class="sonic-topic-label"><?= sonic_t('Social Sciences') ?></span></a></li>
             <li><a href="index.php?callnumber=6&search=search" class="sonic-topic">
-                <div class="sonic-topic-icon"><i class="fas fa-flask"></i></div>
-                <span class="sonic-topic-label"><?= __('Applied Sciences') ?></span></a></li>
+                <div class="sonic-topic-icon"><img src="<?= assets('images/6-blackboard.png') ?>" alt="" onerror="this.style.display='none'"></div>
+                <span class="sonic-topic-label"><?= sonic_t('Applied Sciences') ?></span></a></li>
             <li><a href="index.php?callnumber=7&search=search" class="sonic-topic">
-                <div class="sonic-topic-icon"><i class="fas fa-palette"></i></div>
-                <span class="sonic-topic-label"><?= __('Art & Recreation') ?></span></a></li>
-            <li><a href="javascript:void(0)" class="sonic-topic" data-toggle="modal" data-target="#exampleModal">
-                <div class="sonic-topic-icon"><i class="fas fa-border-all"></i></div>
-                <span class="sonic-topic-label"><?= __('see more..') ?></span></a></li>
+                <div class="sonic-topic-icon"><img src="<?= assets('images/7-quill.png') ?>" alt="" onerror="this.style.display='none'"></div>
+                <span class="sonic-topic-label"><?= sonic_t('Art & Recreation') ?></span></a></li>
+            <li><a href="javascript:void(0)" class="sonic-topic" onclick="document.getElementById('exampleModal').classList.add('active');return false;">
+                <div class="sonic-topic-icon"><i class="fas fa-th"></i></div>
+                <span class="sonic-topic-label"><?= sonic_t('see more..') ?></span></a></li>
         </ul>
     </section>
 
     <!-- POPULER (server-side) -->
     <?php if (count($sonic_popular) > 0): ?>
     <section class="sonic-section">
-        <h3 class="sonic-section-title"><i class="fas fa-fire" style="color:var(--sonic-plasma);margin-right:.5rem;"></i><?= __('Popular among our collection') ?></h3>
-        <p class="sonic-section-sub"><?= __("Our library's top-borrowed titles") ?></p>
+        <h3 class="sonic-section-title"><i class="fas fa-fire" style="color:var(--sonic-plasma);margin-right:.5rem;"></i><?= sonic_t('Popular among our collection') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t("Our library's top-borrowed titles") ?></p>
         <div class="sonic-biblio-grid">
             <?php foreach ($sonic_popular as $b): ?>
             <a class="sonic-book" href="index.php?p=show_detail&id=<?= (int)$b['biblio_id'] ?>">
@@ -60,7 +60,7 @@ try {
                     <img loading="lazy" src="<?= sonic_cover($b['image'] ?? '') ?>" alt="<?= htmlspecialchars($b['title']) ?>" onerror="this.src='./images/default/image.png'">
                 </div>
                 <h4 class="sonic-book-title"><?= htmlspecialchars($b['title']) ?></h4>
-                <p class="sonic-book-author"><i class="fas fa-book-reader"></i> <?= (int)($b['total'] ?? 0) ?>x <?= __('borrowed') ?></p>
+                <p class="sonic-book-author"><i class="fas fa-book-reader"></i> <?= (int)($b['total'] ?? 0) ?>x <?= sonic_t('borrowed') ?></p>
             </a>
             <?php endforeach; ?>
         </div>
@@ -70,8 +70,8 @@ try {
     <!-- TERBARU (server-side) -->
     <?php if (count($sonic_latest) > 0): ?>
     <section class="sonic-section">
-        <h3 class="sonic-section-title"><i class="fas fa-bolt" style="color:var(--sonic-neon);margin-right:.5rem;"></i><?= __('New collections + updated') ?></h3>
-        <p class="sonic-section-sub"><?= __('Fresh additions to our database') ?></p>
+        <h3 class="sonic-section-title"><i class="fas fa-bolt" style="color:var(--sonic-neon);margin-right:.5rem;"></i><?= sonic_t('New collections + updated') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t('Fresh additions to our database') ?></p>
         <div class="sonic-biblio-grid">
             <?php foreach ($sonic_latest as $b): ?>
             <a class="sonic-book" href="index.php?p=show_detail&id=<?= (int)$b['biblio_id'] ?>">
@@ -79,7 +79,7 @@ try {
                     <img loading="lazy" src="<?= sonic_cover($b['image'] ?? '') ?>" alt="<?= htmlspecialchars($b['title']) ?>" onerror="this.src='./images/default/image.png'">
                 </div>
                 <h4 class="sonic-book-title"><?= htmlspecialchars($b['title']) ?></h4>
-                <p class="sonic-book-author"><i class="fas fa-clock"></i> <?= __('updated') ?></p>
+                <p class="sonic-book-author"><i class="fas fa-clock"></i> <?= sonic_t('updated') ?></p>
             </a>
             <?php endforeach; ?>
         </div>
@@ -92,8 +92,8 @@ try {
     <!-- TOP READER (server-side) -->
     <?php if (count($sonic_readers) > 0): ?>
     <section class="sonic-section">
-        <h3 class="sonic-section-title"><i class="fas fa-trophy" style="color:#ffd700;margin-right:.5rem;"></i><?= __('Top reader of the year') ?></h3>
-        <p class="sonic-section-sub"><?= __('Our most active scholars') ?></p>
+        <h3 class="sonic-section-title"><i class="fas fa-trophy" style="color:#ffd700;margin-right:.5rem;"></i><?= sonic_t('Top reader of the year') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t('Our most active scholars') ?></p>
         <ul class="sonic-topics">
             <?php foreach ($sonic_readers as $m): ?>
             <li>
@@ -109,4 +109,5 @@ try {
         </ul>
     </section>
     <?php endif; ?>
+
 </div>

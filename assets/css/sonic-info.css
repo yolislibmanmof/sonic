@@ -352,3 +352,17 @@
         height: 10px;
     }
 }
+
+/* ===== Library Profile ===== */
+.sonic-profile-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1.5rem;margin-top:1.5rem}
+@media (max-width:900px){.sonic-profile-grid{grid-template-columns:1fr}}
+.sonic-profile-card{background:var(--sonic-surface);border:1px solid var(--glass-border);border-left:3px solid var(--sonic-neon);border-radius:16px;padding:1.6rem;backdrop-filter:blur(10px);box-shadow:0 10px 30px rgba(0,240,255,.08)}
+.sonic-profile-head{display:flex;align-items:center;gap:.9rem;margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid var(--glass-border)}
+.sonic-profile-icon{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(135deg,rgba(0,240,255,.15),rgba(91,0,255,.15));color:var(--sonic-neon);font-size:1.1rem;border:1px solid var(--glass-border)}
+.sonic-profile-head h4{margin:0;color:var(--sonic-neon);font-family:'Orbitron',sans-serif;font-size:1.05rem;letter-spacing:1px}
+.sonic-profile-body{color:var(--sonic-text);line-height:1.8}
+.sonic-profile-body p{margin:0}
+.sonic-profile-list{margin:0;padding-left:1.1rem;display:flex;flex-direction:column;gap:.5rem}
+.sonic-profile-list li::marker{color:var(--sonic-neon)}
+.sonic-profile-big{display:inline-block;font-family:'Orbitron',sans-serif;font-size:2rem;font-weight:900;background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-plasma));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sonic-profile-accred{font-size:1.4rem}

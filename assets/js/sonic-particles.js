@@ -1,11 +1,12 @@
 /**
- * SONIC OPAC — Floating Book Pages (Global Ambient Particles)
- * Lembaran kertas + siluet buku melayang di background seluruh modul.
- * Canvas fixed-layer z-index 0: di belakang konten, di atas grid body.
- * Aditif & aman: tidak menyentuh fitur existing apa pun.
+ * SONIC OPAC — Floating Particles (configurable via Kustomisasi)
+ * window.SONIC_CFG.particle: books | stars | bolts | mixed | none
  */
 (function () {
     'use strict';
+    var CFG = window.SONIC_CFG || {};
+    var PTYPE = CFG.particle || 'books';
+    if (PTYPE === 'none') return;
 
     var REDUCED = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -16,8 +17,18 @@
     document.body.insertBefore(canvas, document.body.firstChild);
     var ctx = canvas.getContext('2d');
 
-    var COLORS = ['#00f0ff', '#ff00aa', '#7a5cff', '#e6f7ff'];
-    var TYPES = ['page', 'page', 'page', 'book', 'bookopen'];   // lembaran lebih dominan
+    var PALETTE = {
+        books: ['#00f0ff', '#ff00aa', '#7a5cff', '#e6f7ff'],
+        stars: ['#ffd700', '#00f0ff', '#ffffff', '#ff00aa'],
+        bolts: ['#00f0ff', '#ffe600', '#ff00aa', '#e6f7ff'],
+        mixed: ['#00f0ff', '#ff00aa', '#ffd700', '#7a5cff']
+    }[PTYPE] || ['#00f0ff', '#ff00aa', '#7a5cff', '#e6f7ff'];
+    var TYPES = {
+        books: ['page', 'page', 'page', 'book', 'bookopen'],
+        stars: ['star', 'star', 'star', 'spark'],
+        bolts: ['bolt', 'bolt', 'spark'],
+        mixed: ['page', 'book', 'star', 'bolt', 'bookopen']
+    }[PTYPE] || ['page', 'page', 'book'];
     var SIZES = [16, 22, 30, 40];
 
     function rgba(hex, a) {
@@ -37,7 +48,7 @@
         g.shadowColor = color; g.shadowBlur = s * 0.5;
         g.lineWidth = Math.max(1.1, s * 0.07);
 
-        if (type === 'page') {                       /* lembaran kertas + lipatan + baris teks */
+        if (type === 'page') {
             var w = s * 0.78, h = s * 1.0, f = s * 0.26;
             g.beginPath();
             g.moveTo(-w / 2, -h / 2); g.lineTo(w / 2 - f, -h / 2); g.lineTo(w / 2, -h / 2 + f);
@@ -56,7 +67,7 @@
                 g.stroke();
             }
             g.restore();
-        } else if (type === 'book') {                /* buku tertutup + punggung + pita */
+        } else if (type === 'book') {
             var bw = s * 0.82, bh = s * 0.62;
             g.beginPath();
             if (g.roundRect) g.roundRect(-bw / 2, -bh / 2, bw, bh, s * 0.08);
@@ -67,7 +78,7 @@
             g.save(); g.globalAlpha = 0.8; g.shadowBlur = s * 0.2;
             g.beginPath(); g.moveTo(-bw / 2 + s * 0.3, -bh / 2 + s * 0.16); g.lineTo(bw / 2 - s * 0.14, -bh / 2 + s * 0.16); g.stroke();
             g.restore();
-        } else {                                     /* buku terbuka */
+        } else if (type === 'bookopen') {
             var ow = s * 0.5, oh = s * 0.42;
             g.beginPath();
             g.moveTo(0, -oh * 0.35);
@@ -81,11 +92,34 @@
             g.save(); g.globalAlpha = 0.12; g.fill(); g.restore();
             g.stroke();
             g.beginPath(); g.moveTo(0, -oh * 0.35); g.lineTo(0, oh * 0.65); g.stroke();
+        } else if (type === 'star') {
+            var R = s * 0.5, r2 = s * 0.22, pts = [];
+            for (var k = 0; k < 10; k++) {
+                var ang = -Math.PI / 2 + k * Math.PI / 5, rad = (k % 2 === 0) ? R : r2;
+                pts.push([Math.cos(ang) * rad, Math.sin(ang) * rad]);
+            }
+            g.beginPath(); g.moveTo(pts[0][0], pts[0][1]);
+            for (var k2 = 1; k2 < 10; k2++) g.lineTo(pts[k2][0], pts[k2][1]);
+            g.closePath();
+            g.save(); g.globalAlpha = 0.15; g.fill(); g.restore(); g.stroke();
+        } else if (type === 'bolt') {
+            var u = s / 20;
+            g.beginPath();
+            g.moveTo(2 * u, -10 * u); g.lineTo(-4 * u, 1 * u); g.lineTo(0, 1 * u);
+            g.lineTo(-2 * u, 10 * u); g.lineTo(4 * u, -1 * u); g.lineTo(0, -1 * u); g.closePath();
+            g.save(); g.globalAlpha = 0.15; g.fill(); g.restore(); g.stroke();
+        } else { /* spark */
+            var L = s * 0.5;
+            g.beginPath(); g.moveTo(0, -L); g.lineTo(0, L); g.moveTo(-L, 0); g.lineTo(L, 0); g.stroke();
+            g.save(); g.globalAlpha = 0.6;
+            g.beginPath(); g.moveTo(-L * 0.5, -L * 0.5); g.lineTo(L * 0.5, L * 0.5);
+            g.moveTo(L * 0.5, -L * 0.5); g.lineTo(-L * 0.5, L * 0.5); g.stroke();
+            g.restore();
         }
         return c;
     }
 
-    function makeGlint(color, s) {                   /* kelip cahaya kecil */
+    function makeGlint(color, s) {
         var dim = Math.ceil(s * 4), c = document.createElement('canvas');
         c.width = c.height = dim;
         var g = c.getContext('2d'), r = dim / 2;
@@ -103,37 +137,29 @@
     var scrollY = window.scrollY || 0;
     var mx = 0, my = 0, tmx = 0, tmy = 0;
 
-    function targetCount() {
-        return Math.max(14, Math.min(40, Math.round((W * H) / 42000)));
-    }
+    function targetCount() { return Math.max(14, Math.min(40, Math.round((W * H) / 42000))); }
 
     function makePart() {
-        var z = 0.45 + Math.random() * 0.75;                       /* kedalaman (parallax) */
+        var z = 0.45 + Math.random() * 0.75;
         var si = z < 0.68 ? 0 : (z < 0.88 ? 1 : (z < 1.05 ? 2 : 3));
         var ci = Math.random() < 0.55 ? 0 : (Math.random() < 0.6 ? 3 : (Math.random() < 0.5 ? 1 : 2));
         return {
-            sp: makeSprite(TYPES[Math.floor(Math.random() * TYPES.length)], COLORS[ci], SIZES[si]),
-            x: Math.random() * W,
-            y: Math.random() * (H + 160) - 80,
-            z: z,
-            vy: 6 + Math.random() * 14,                            /* naik perlahan */
-            swA: 12 + Math.random() * 30,                          /* amplitudo ayun */
-            swF: 0.25 + Math.random() * 0.5,                       /* frekuensi ayun */
-            flF: 0.5 + Math.random() * 0.9,                        /* flutter kertas */
-            ph: Math.random() * Math.PI * 2,
-            ph2: Math.random() * Math.PI * 2,
-            rot: (Math.random() - 0.5) * 0.9,
-            vr: (Math.random() - 0.5) * 0.25,
-            al: 0.10 + z * 0.14                                    /* semi-transparan tapi terlihat */
+            sp: makeSprite(TYPES[Math.floor(Math.random() * TYPES.length)], PALETTE[ci], SIZES[si]),
+            x: Math.random() * W, y: Math.random() * (H + 160) - 80, z: z,
+            vy: 6 + Math.random() * 14,
+            swA: 12 + Math.random() * 30, swF: 0.25 + Math.random() * 0.5,
+            flF: 0.5 + Math.random() * 0.9,
+            ph: Math.random() * Math.PI * 2, ph2: Math.random() * Math.PI * 2,
+            rot: (Math.random() - 0.5) * 0.9, vr: (Math.random() - 0.5) * 0.25,
+            al: 0.10 + z * 0.14
         };
     }
 
     function makeGlintP() {
         var ci = Math.random() < 0.6 ? 0 : 1;
         return {
-            sp: makeGlint(COLORS[ci], 3 + Math.random() * 3),
-            x: Math.random() * W,
-            y: Math.random() * H,
+            sp: makeGlint(PALETTE[ci], 3 + Math.random() * 3),
+            x: Math.random() * W, y: Math.random() * H,
             z: 0.4 + Math.random() * 0.8,
             vy: 4 + Math.random() * 8,
             ph: Math.random() * 6.28,
@@ -161,11 +187,11 @@
         var i, p, m = 90, span = H + 2 * m;
         for (i = 0; i < parts.length; i++) {
             p = parts[i];
-            var yy = p.y - scrollY * 0.10 * p.z;                   /* parallax scroll */
+            var yy = p.y - scrollY * 0.10 * p.z;
             yy = (((yy + m) % span) + span) % span - m;
             var xx = p.x + Math.sin(t * p.swF + p.ph) * p.swA + mx * 14 * p.z;
             yy = yy + my * 10 * p.z;
-            var sc = 0.4 + 0.6 * Math.abs(Math.sin(t * p.flF + p.ph2));   /* flutter 3D */
+            var sc = 0.4 + 0.6 * Math.abs(Math.sin(t * p.flF + p.ph2));
             var a = p.al * (0.8 + 0.2 * Math.sin(t * 0.9 + p.ph));
             ctx.save();
             ctx.translate(xx, yy);
@@ -214,11 +240,9 @@
     function start() {
         resize();
         canvas.classList.add('on');
-        if (REDUCED) { draw(1); return; }          /* hormati prefers-reduced-motion */
+        if (REDUCED) { draw(1); return; }
         requestAnimationFrame(frame);
     }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start);
     else start();
-
-    console.log('%c📖 SONIC Floating Book Pages: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
 })();

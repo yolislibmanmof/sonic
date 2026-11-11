@@ -32,3 +32,9 @@
 .sonic-adv-field input:focus,.sonic-adv-field select:focus{border-color:var(--sonic-neon);box-shadow:0 0 0 3px rgba(0,240,255,.15)}
 .sonic-adv-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem}
 @media (max-width:768px){.sonic-adv-grid{grid-template-columns:1fr}}
+.sonic-topic-box{max-width:760px}
+.sonic-dewey-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:1rem}
+.sonic-dewey-item{display:flex;flex-direction:column;align-items:center;gap:.6rem;padding:1.2rem .8rem;background:rgba(0,0,0,.3);border:1px solid var(--glass-border);border-radius:14px;text-decoration:none;color:var(--sonic-text);text-align:center;transition:.3s}
+.sonic-dewey-item:hover{border-color:var(--sonic-neon);transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,240,255,.2)}
+.sonic-dewey-item img{width:64px;height:64px;object-fit:contain}
+.sonic-dewey-item span{font-size:.8rem;line-height:1.4}

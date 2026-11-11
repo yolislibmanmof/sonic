@@ -44,13 +44,21 @@ $sonic_welcome_words = explode(' ', $sonic_welcome_text);
         <div class="sonic-hud hud-bl"></div>
         <div class="sonic-hud hud-br"></div>
 
-        <!-- ===== WELCOME STAGE: siluet berjalan + teks sambutan ===== -->
+        <!-- ===== WELCOME STAGE: configurable text + walker ===== -->
+        <?php
+        $sonic_welcome_text = (string)($sysconf['template']['sonic_welcome_text'] ?? 'SELAMAT DATANG DI LAYANAN OPAC PERPUSTAKAAN');
+        $sonic_welcome_words = array_values(array_filter(explode(' ', $sonic_welcome_text), fn($w) => $w !== ''));
+        $sonic_walker = (string)($sysconf['template']['sonic_walker'] ?? 'person');
+        ?>
         <div class="sonic-welcome-stage" aria-hidden="true">
+            <?php if (count($sonic_welcome_words) > 0): ?>
             <h2 class="sonic-welcome-text">
                 <?php foreach ($sonic_welcome_words as $wi => $w): ?>
                 <span class="sonic-welcome-word" style="--wi:<?= $wi ?>"><?= htmlspecialchars($w) ?></span>
                 <?php endforeach; ?>
             </h2>
+            <?php endif; ?>
+            <?php if ($sonic_walker !== 'none'): ?>
             <div class="sonic-walk-track">
                 <div class="sonic-walker">
                     <svg class="sonic-walker-svg" viewBox="0 0 64 128" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -61,16 +69,38 @@ $sonic_welcome_words = explode(' ', $sonic_welcome_text);
                             </linearGradient>
                         </defs>
                         <g stroke="url(#sonicWalkerGrad)" stroke-width="7" stroke-linecap="round">
+                        <?php if ($sonic_walker === 'robot'): ?>
+                            <line x1="36" y1="8" x2="36" y2="2"/><circle cx="36" cy="2" r="2.4" fill="url(#sonicWalkerGrad)" stroke="none"/>
+                            <rect x="28" y="8" width="16" height="15" rx="3" fill="rgba(0,240,255,.12)"/>
+                            <circle cx="33" cy="15" r="1.6" fill="url(#sonicWalkerGrad)" stroke="none"/>
+                            <circle cx="39" cy="15" r="1.6" fill="url(#sonicWalkerGrad)" stroke="none"/>
+                            <rect x="26" y="26" width="18" height="36" rx="4" fill="rgba(0,240,255,.10)"/>
+                            <g class="w-part w-arm w-arm-b"><path d="M36 32 L24 54"/></g>
+                            <g class="w-part w-arm w-arm-f"><path d="M36 32 L49 52"/></g>
+                            <g class="w-part w-leg w-leg-b"><path d="M34 62 L25 90 L21 116"/></g>
+                            <g class="w-part w-leg w-leg-f"><path d="M34 62 L45 89 L47 116"/></g>
+                        <?php elseif ($sonic_walker === 'astronaut'): ?>
+                            <circle cx="38" cy="13" r="12"/>
+                            <circle cx="38" cy="13" r="8" fill="url(#sonicWalkerGrad)" stroke="none"/>
+                            <rect x="18" y="26" width="9" height="26" rx="4" fill="rgba(255,0,170,.12)"/>
+                            <path class="w-part w-torso" d="M37 25 L34 62"/>
+                            <g class="w-part w-arm w-arm-b"><path d="M36 32 L24 54"/></g>
+                            <g class="w-part w-arm w-arm-f"><path d="M36 32 L49 52"/></g>
+                            <g class="w-part w-leg w-leg-b"><path d="M34 62 L25 90 L21 116"/></g>
+                            <g class="w-part w-leg w-leg-f"><path d="M34 62 L45 89 L47 116"/></g>
+                        <?php else: ?>
                             <circle cx="38" cy="13" r="9" fill="url(#sonicWalkerGrad)" stroke="none"/>
                             <path class="w-part w-torso" d="M37 24 L34 62"/>
                             <g class="w-part w-arm w-arm-b"><path d="M36 32 L24 54"/></g>
                             <g class="w-part w-arm w-arm-f"><path d="M36 32 L49 52"/></g>
                             <g class="w-part w-leg w-leg-b"><path d="M34 62 L25 90 L21 116"/></g>
                             <g class="w-part w-leg w-leg-f"><path d="M34 62 L45 89 L47 116"/></g>
+                        <?php endif; ?>
                         </g>
                     </svg>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
 
         <a href="#search-wraper" class="sonic-scroll-cue" aria-label="Gulir ke pencarian"><i class="fas fa-chevron-down"></i></a>
