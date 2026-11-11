@@ -70,8 +70,8 @@ if ($sonic_cover_raw !== '' && !file_exists('./images/docs/' . $sonic_cover_raw)
     $sonic_cover_raw = '';
 }
 $sonic_cover_url = !empty($sonic_cover_raw)
-    ? './lib/minigalnano/createthumb.php?filename=' . urlencode('images/docs/' . $sonic_cover_raw) . '&width=600'
-    : './lib/minigalnano/createthumb.php?filename=images/default/image.png&width=600';
+    ? './lib/minigalnano/createthumb.php?filename=' . urlencode('images/docs/' . $sonic_cover_raw) . '&width=240'
+    : './lib/minigalnano/createthumb.php?filename=images/default/image.png&width=240';
 
 /* ===== 4. AVAILABILITY ===== */
 $sonic_total_items = 0; $sonic_borrowed_items = 0; $sonic_available_items = 0;
