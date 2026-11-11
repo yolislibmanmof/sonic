@@ -24,3 +24,12 @@
 .sonic-facet-toggle{display:block}
 .sonic-facet.collapsed .sonic-facet-body{display:none}
 }
+/* ===== FASE 2: multi-select facet ===== */
+.sonic-facet-options{display:flex;flex-direction:column;gap:.3rem;max-height:220px;overflow-y:auto;padding-right:.2rem}
+.sonic-facet-check{display:flex;align-items:center;gap:.5rem;padding:.4rem .6rem;border:1px solid transparent;border-radius:8px;cursor:pointer;color:var(--sonic-text);font-size:.85rem;transition:.2s}
+.sonic-facet-check:hover{background:rgba(0,240,255,.06)}
+.sonic-facet-check.on{border-color:var(--sonic-neon);background:rgba(0,240,255,.1)}
+.sonic-facet-check input{accent-color:var(--sonic-neon);width:15px;height:15px;flex:0 0 auto}
+.sonic-facet-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-facet-count{margin-left:auto;font-style:normal;font-size:.68rem;color:var(--sonic-muted);border:1px solid var(--glass-border);border-radius:10px;padding:.05rem .45rem}
+.sonic-facet-check.on .sonic-facet-count{color:var(--sonic-neon);border-color:var(--sonic-neon)}

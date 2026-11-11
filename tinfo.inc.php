@@ -52,6 +52,8 @@ foreach ($sonic_defaults as $k => $v) {
 }
 
 $sysconf['visitor_log_voice'] = 1;
+$sysconf['template']['sonic_kiosk_idle'] = $sysconf['template']['sonic_kiosk_idle'] ?? 20;
+$sysconf['template']['sonic_kiosk_quotes'] = $sysconf['template']['sonic_kiosk_quotes'] ?? '';
 
 /* ===== SLiMS CUSTOMIZER SCHEMA (wajib agar tombol Kustomisasi hidup) ===== */
 $sysconf['template']['option']['sonic'] = [
@@ -80,6 +82,8 @@ $sysconf['template']['option']['sonic'] = [
     'map'      => ['dbfield'=>'sonic_map','label'=>'Show Library Map','type'=>'choice','default'=>1,'data'=>[['1','Yes'],['0','No']]],
     'maplink'  => ['dbfield'=>'sonic_map_link','label'=>'Map Link / Address (Google Maps)','type'=>'text','default'=>'','width'=>90,'max'=>300],
     'mapdesc'  => ['dbfield'=>'sonic_map_desc','label'=>'Map Description','type'=>'longtext','default'=>'','width'=>90,'max'=>300],
+    'kidle'   => ['dbfield'=>'sonic_kiosk_idle','label'=>'Kiosk: Idle reset (seconds)','type'=>'numeric','default'=>20,'width'=>30,'max'=>3],
+    'kquotes' => ['dbfield'=>'sonic_kiosk_quotes','label'=>'Kiosk: Quotes — separate with ||','type'=>'longtext','default'=>'','width'=>90,'max'=>1000],
 ];
 
 /* ===== Visitor form (tetap) ===== */

@@ -58,7 +58,12 @@ if (!function_exists('sonic_vendor')) {
     <?php endif; ?>
     <meta property="og:url" content="//<?php echo $_SERVER["SERVER_NAME"] . $request_uri; ?>"/>
     <meta property="og:site_name" content="<?php echo $sysconf['library_name']; ?>"/>
-    <meta name="twitter:card" content="summary">
+    <meta name="twitter:card" content="summary_large_image">
+    <?php if (isset($_GET['p']) && ($_GET['p'] == 'show_detail')): ?>
+    <meta name="twitter:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $image_src ?>"/>
+    <meta property="og:image:width" content="600"/>
+    <meta property="og:image:height" content="800"/>
+    <?php endif; ?>
     <meta name="twitter:url" content="//<?php echo $_SERVER["SERVER_NAME"] . $request_uri; ?>"/>
     <meta name="twitter:title" content="<?php echo $page_title; ?>"/>
 

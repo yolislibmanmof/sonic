@@ -6,6 +6,37 @@ use SLiMS\Url;
 
 $label_cache = array();
 
+/* ===== SONIC HELPERS (load-order safe) =====
+   Mesin pencari / show_detail merender template ini SEBELUM classic.php dimuat,
+   maka helper yang dipakai di sini wajib didefinisikan lokal (guarded). */
+if (!function_exists('sonic_kses')) {
+    function sonic_kses($html) {
+        $html = (string)$html;
+        $html = preg_replace('#<(script|style|iframe|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
+        $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
+        $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*javascript:[^"\']*\2#i', '$1=$2#$2', $html);
+        return $html;
+    }
+}
+if (!function_exists('sonic_is_bookmarked')) {
+    function sonic_is_bookmarked($biblio_id) {
+        global $dbs;
+        static $set = null;
+        if (!class_exists('utility') || !utility::isMemberLogin()) return false;
+        if ($set === null) {
+            $set = [];
+            $mid = isset($_SESSION['mid']) ? $dbs->real_escape_string($_SESSION['mid']) : '';
+            if ($mid !== '' && isset($dbs) && is_object($dbs)) {
+                try {
+                    $q = $dbs->query("SELECT biblio_id FROM biblio_mark WHERE member_id='{$mid}'");
+                    if ($q) while ($r = $q->fetch_row()) $set[(int)$r[0]] = true;
+                } catch (Throwable $e) {}
+            }
+        }
+        return isset($set[(int)$biblio_id]);
+    }
+}
+
 function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$return_back = array()) {
     global $label_cache, $sysconf;
 

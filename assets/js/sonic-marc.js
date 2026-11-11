@@ -96,9 +96,18 @@
             .catch(function () { out.innerHTML = '<p class="sonic-marc-empty">// gagal memuat MARC stream</p>'; });
     }
 
+    function findBase() {
+        var link = document.querySelector('link[href*="sonic-base.css"]');
+        return link ? link.href.replace(/assets\/css\/sonic-base\.css.*$/, '') : 'template/sonic/';
+    }
     window.openMarcViewer = openMarc;
     document.addEventListener('click', function (e) {
         var t = e.target.closest ? e.target.closest('.sonic-marc-trigger') : null;
-        if (t) { e.preventDefault(); openMarc(t.getAttribute('href')); }
+        if (!t) return;
+        e.preventDefault();
+        var href = t.getAttribute('href') || '';
+        var m = href.match(/[?&]id=(\d+)/);
+        var url = m ? (findBase() + 'api/marc.php?id=' + m[1]) : href;
+        openMarc(url);
     });
 })();

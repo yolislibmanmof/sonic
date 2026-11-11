@@ -31,3 +31,19 @@
 .sonic-empty .scan{animation:sonicEmptyScan 2.2s linear infinite}
 @keyframes sonicEmptyScan{0%{transform:translateY(-14px);opacity:0}15%{opacity:1}85%{opacity:1}100%{transform:translateY(14px);opacity:0}}
 @media (max-width:900px){.sonic-facet{position:static}}
+
+/* ===== FASE 2: toolbar + saved panel ===== */
+.sonic-result-toolbar{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:1.2rem;flex-wrap:wrap}
+.sonic-view-toggle{display:flex;gap:.4rem}
+.sonic-sort-select{max-width:240px}
+.sonic-result-tools{display:flex;gap:.4rem;align-items:center}
+.sonic-saved-panel{background:var(--sonic-surface);border:1px solid var(--glass-border);border-radius:12px;padding:1rem 1.2rem;margin-bottom:1.2rem}
+.sonic-saved-head{display:flex;align-items:center;gap:.5rem;color:var(--sonic-neon);font-weight:700;margin-bottom:.6rem}
+.sonic-saved-head .sonic-facet-clear{margin-left:auto;position:static}
+.sonic-saved-item{display:flex;align-items:center;gap:.5rem;padding:.4rem 0;border-bottom:1px solid rgba(0,240,255,.08)}
+.sonic-saved-item a{color:var(--sonic-text);text-decoration:none;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-saved-item a i{color:var(--sonic-neon);margin-right:.4rem}
+.sonic-saved-item .sonic-facet-clear{position:static;flex:0 0 auto}
+.sonic-saved-empty{color:var(--sonic-muted);font-size:.85rem}
+/* Sembunyikan debug box core (mode development) agar OPAC bersih */
+.sonic-result-main details{display:none!important}
