@@ -24,7 +24,7 @@ if (!function_exists('sonic_vendor')) {
 }
 ?>
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= htmlspecialchars(substr($sysconf['default_lang'] ?? 'en', 0, 2)) ?>">
 <head>
     <meta charset="utf-8">
     <title><?php echo $page_title; ?> | SONIC OPAC</title>
@@ -37,7 +37,7 @@ if (!function_exists('sonic_vendor')) {
     <?php echo $metadata; ?>
 
     <?php if (isset($_GET['p']) && ($_GET['p'] == 'show_detail')): ?>
-        <meta name="description" content="<?php echo substr($notes, 0, 152) . '...'; ?>">
+        <meta name="description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($notes ?? ''), 0, 152)) . '...'; ?>">
         <meta name="keywords" content="<?php echo $subject; ?>">
     <?php else: ?>
         <meta name="description" content="<?php echo $page_title; ?>">
@@ -50,11 +50,11 @@ if (!function_exists('sonic_vendor')) {
     <meta property="og:type" content="book"/>
     <meta property="og:title" content="<?php echo $page_title; ?>"/>
     <?php if (isset($_GET['p']) && ($_GET['p'] == 'show_detail')): ?>
-        <meta property="og:description" content="<?php echo substr($notes, 0, 152) . '...'; ?>"/>
+        <meta property="og:description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($notes ?? ''), 0, 152)) . '...'; ?>"/>
         <meta property="og:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $image_src ?>"/>
     <?php else: ?>
         <meta property="og:description" content="<?php echo $sysconf['library_subname']; ?>"/>
-        <meta property="og:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $sysconf['template']['dir']; ?>/sonic/assets/images/logo.png"/>
+        <meta property="og:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $sysconf['template']['dir']; ?>/sonic/assets/images/logo-big.png"/>
     <?php endif; ?>
     <meta property="og:url" content="//<?php echo $_SERVER["SERVER_NAME"] . $request_uri; ?>"/>
     <meta property="og:site_name" content="<?php echo $sysconf['library_name']; ?>"/>
@@ -81,10 +81,8 @@ if (!function_exists('sonic_vendor')) {
 
     <!-- SONIC THEME (modular, versi cache-bust) -->
     <?php
-    $sonicCssVer = date('Ymd-his');
     foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash'] as $scf) {
-
-        echo '<link rel="stylesheet" href="' . assets('css/' . $scf . '.css?v=' . $sonicCssVer) . '">' . "\n";
+        echo '<link rel="stylesheet" href="' . assets('css/' . $scf . '.css') . '?v=' . sonic_asset_ver('css/' . $scf . '.css') . '">' . "\n";
     }
     ?>
 
@@ -96,11 +94,16 @@ if (!function_exists('sonic_vendor')) {
     ?>
     <link rel="shortcut icon" href="<?php echo $icon ?>" type="image/x-icon"/>
 
-    <!-- Vendor JS (FALLBACK AMAN — urutan WAJIB: jquery dulu) -->
-    <script src="<?php echo sonic_vendor('js/vue.min.js'); ?>"></script>
+    <!-- Vendor JS (jquery dulu) -->
     <script src="<?php echo sonic_vendor('js/jquery.min.js'); ?>"></script>
-    <script src="<?php echo sonic_vendor('js/masonry.pkgd.min.js'); ?>"></script>
     <script src="<?php echo sonic_vendor('js/bootstrap.bundle.min.js'); ?>"></script>
+    <script>
+    window.SONIC_CFG = <?php echo json_encode([
+        'particle' => (string)($sysconf['template']['sonic_particle'] ?? 'books'),
+        'walker'   => (string)($sysconf['template']['sonic_walker'] ?? 'person'),
+        'lang'     => substr($sysconf['default_lang'] ?? 'en', 0, 2),
+    ], JSON_UNESCAPED_UNICODE); ?>;
+    </script>
 
     <!-- SLiMS core JS -->
     <script src="<?php echo JWB; ?>toastr/toastr.min.js"></script>

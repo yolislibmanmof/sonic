@@ -87,7 +87,7 @@ $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.c
                 <h4 class="sonic-footer-heading"><i class="fas fa-compass"></i> <?= sonic_t('Quick Links') ?></h4>
                 <ul class="sonic-footer-links">
                     <li><a href="index.php?p=libinfo"><i class="fas fa-angle-right"></i> <?= sonic_t('Information') ?></a></li>
-                    <li><a href="index.php?p=services"><i class="fas fa-angle-right"></i> <?= sonic_t('Services') ?></a></li>
+                    <li><a href="index.php?p=libinfo"><i class="fas fa-angle-right"></i> <?= sonic_t('Services') ?></a></li>
                     <li><a href="index.php?p=news"><i class="fas fa-angle-right"></i> <?= sonic_t('News') ?></a></li>
                     <li><a href="index.php?p=help"><i class="fas fa-angle-right"></i> <?= sonic_t('Help') ?></a></li>
                     <li><a href="index.php?p=librarian"><i class="fas fa-angle-right"></i> <?= sonic_t('Librarian') ?></a></li>
@@ -98,12 +98,11 @@ $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.c
             <div class="sonic-footer-col">
                 <h4 class="sonic-footer-heading"><i class="fas fa-cogs"></i> <?= sonic_t('Our Services') ?></h4>
                 <ul class="sonic-footer-links">
-                    <li><a href="#"><i class="fas fa-angle-right"></i> <?= sonic_t('Digital Collections') ?></a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> <?= sonic_t('E-Books') ?></a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> <?= sonic_t('Journals') ?></a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> <?= sonic_t('Thesis & Dissertations') ?></a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> <?= sonic_t('Interlibrary Loan') ?></a></li>
-                    <li><a href="#"><i class="fas fa-angle-right"></i> <?= sonic_t('Reference Service') ?></a></li>
+                    <li><a href="index.php?search=search&gmd=E-Book"><i class="fas fa-angle-right"></i> <?= sonic_t('E-Books') ?></a></li>
+                    <li><a href="index.php?search=search&gmd=Journal"><i class="fas fa-angle-right"></i> <?= sonic_t('Journals') ?></a></li>
+                    <li><a href="index.php?search=search&gmd=Thesis"><i class="fas fa-angle-right"></i> <?= sonic_t('Thesis & Dissertations') ?></a></li>
+                    <li><a href="mailto:<?= htmlspecialchars($sonic_email) ?>?subject=<?= rawurlencode(sonic_t('Interlibrary Loan')) ?>"><i class="fas fa-angle-right"></i> <?= sonic_t('Interlibrary Loan') ?></a></li>
+                    <li><a href="mailto:<?= htmlspecialchars($sonic_email) ?>?subject=<?= rawurlencode(sonic_t('Reference Service')) ?>"><i class="fas fa-angle-right"></i> <?= sonic_t('Reference Service') ?></a></li>
                 </ul>
             </div>
 
@@ -170,11 +169,11 @@ foreach ($_sonic_modals as $_modal) {
 <?php endif; ?>
 
 <?php
-$_sonic_js = ['js/app.js', 'js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js', 'js/sonic-login.js'];
+$_sonic_js = ['js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js'];
 foreach ($_sonic_js as $_js) {
     $_js_path = __DIR__ . '/../assets/' . $_js;
     if (file_exists($_js_path)) {
-        echo '<script src="' . assets($_js) . '"></script>' . "\n";
+        echo '<script src="' . assets($_js) . '?v=' . sonic_asset_ver($_js) . '"></script>' . "\n";
     }
 }
 

@@ -16,7 +16,7 @@ $_sonic_icon_map = [
     'news'=>'fas fa-newspaper','help'=>'fas fa-question-circle','librarian'=>'fas fa-user-shield',
     'member'=>'fas fa-user-astronaut','visitor'=>'fas fa-clipboard-user',
 ];
-foreach (preg_split('/\r\n|\r|\n/', (string)($sysconf['template']['sonic_extra_menus'] ?? '')) as $_line) {
+foreach (preg_split('/\r\n|\r|\n|,/', (string)($sysconf['template']['sonic_extra_menus'] ?? '')) as $_line) {
     $_line = trim($_line);
     if ($_line === '') continue;
     if (strpos($_line, '|') !== false) { list($_lb, $_url) = array_map('trim', explode('|', $_line, 2)); }
@@ -54,8 +54,8 @@ $cur_s = $_GET['sec'] ?? '';
             <?php
             if(isset($sysconf['logo_image']) && $sysconf['logo_image'] != '' && $imagesDisk->isExists($path = 'default/'.$sysconf['logo_image'])){
                 echo '<img src="'.SWB . 'lib/minigalnano/createthumb.php?filename=images/' . $path.'&width=350" alt="logo">';
-            } elseif (file_exists(__DIR__ . '/../assets/images/logo.png')) {
-                echo '<img src="'.assets('images/logo.png').'" alt="logo">';
+            } elseif (file_exists(__DIR__ . '/../assets/images/logo-big.png')) {
+                echo '<img src="'.assets('images/logo-big.png').'" alt="logo">';
             }
             ?>
             <div class="sonic-brand-text">
@@ -104,12 +104,12 @@ $cur_s = $_GET['sec'] ?? '';
                 <li class="<?= $menu_member_active ?> sonic-nav-protected">
                     <a href="index.php?p=member&sec=title_basket" title="<?= __('Basket') ?>">
                         <i class="fas fa-shopping-basket"></i>
-                        <span class="sonic-badge-count"><?= count($_SESSION['m_mark_biblio'] ?? []) ?></span>
+                        <span class="sonic-badge-count" id="count-basket"><?= count($_SESSION['m_mark_biblio'] ?? []) ?></span>
                     </a>
                 </li>
                 <li class="<?= $menu_member_active ?> sonic-nav-protected">
-                    <a href="index.php?p=member" class="sonic-user-btn" title="<?= htmlspecialchars($_SESSION['m_name']) ?>">
-                        <i class="fas fa-user-circle"></i> <span class="sonic-nav-label"><?= $_SESSION['m_name'] ?></span>
+                    <a href="index.php?p=member" class="sonic-user-btn" title="<?= htmlspecialchars($_SESSION['m_name'] ?? '') ?>">
+                        <i class="fas fa-user-circle"></i> <span class="sonic-nav-label"><?= htmlspecialchars($_SESSION['m_name'] ?? '') ?></span>
                     </a>
                 </li>
                 <li class="sonic-nav-protected">

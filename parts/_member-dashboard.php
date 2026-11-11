@@ -1,13 +1,13 @@
 <?php
 # @Filename: _member-dashboard.php (SONIC Mission 3 — Member Dashboard Modern)
 if (empty($is_login)) return;
-$m_id = $_SESSION['m_id'] ?? ($_SESSION['member_id'] ?? null);
+$m_id = $_SESSION['mid'] ?? ($_SESSION['m_id'] ?? ($_SESSION['member_id'] ?? null));
 if (!$m_id || !isset($dbs) || !is_object($dbs)) return;
 $mid = $dbs->escape_string($m_id);
 $today = date('Y-m-d');
 
 $dash = ['current' => [], 'history' => [], 'genres' => []];
-$total_loans = 0; $ontime = 0; $returned = 0; $genre_distinct = 0; $wish = [];
+$total_loans = 0; $ontime = 0; $returned = 0; $genre_distinct = 0; $wish = []; $reserves = [];
 
 try {
     $q = $dbs->query("SELECT l.loan_date, l.due_date, b.biblio_id, b.title, b.image
@@ -42,12 +42,15 @@ try {
                       FROM loan l WHERE l.member_id='{$mid}'");
     if ($q && ($r = $q->fetch_assoc())) { $ontime = (int)$r['ot']; $returned = (int)$r['rt']; }
 
-    $bm = array_keys($_SESSION['bookmark'] ?? []);
-    if (count($bm)) {
-        $ids = implode(',', array_map('intval', $bm));
-        $q = $dbs->query("SELECT biblio_id, title, image FROM biblio WHERE biblio_id IN ({$ids}) LIMIT 6");
-        if ($q) while ($r = $q->fetch_assoc()) $wish[] = $r;
-    }
+    $q = $dbs->query("SELECT b.biblio_id, b.title, b.image FROM biblio_mark bm JOIN biblio b ON bm.biblio_id=b.biblio_id WHERE bm.member_id='{$mid}' ORDER BY bm.created_at DESC LIMIT 6");
+    if ($q) while ($r = $q->fetch_assoc()) $wish[] = $r;
+
+    // Reservasi aktif (tabel reserve)
+    $reserves = [];
+    try {
+        $q = $dbs->query("SELECT r.reserve_date, b.biblio_id, b.title FROM reserve r JOIN biblio b ON r.biblio_id=b.biblio_id WHERE r.member_id='{$mid}' ORDER BY r.reserve_date DESC LIMIT 6");
+        if ($q) while ($r = $q->fetch_assoc()) $reserves[] = $r;
+    } catch (Throwable $e) {}
 } catch (Throwable $e) { /* silent */ }
 
 $ontime_pct = $returned > 0 ? (int)round($ontime / $returned * 100) : 0;
@@ -160,6 +163,25 @@ function sonic_dash_status($row, $today) {
                         <div class="sonic-tl-date"><?= htmlspecialchars($h['loan_date']) ?> → <?= htmlspecialchars($h['due_date']) ?><?php if (!empty($h['return_date'])): ?> · returned <?= htmlspecialchars($h['return_date']) ?><?php endif; ?></div>
                     </div>
                     <span class="sonic-tl-status <?= $st[0] ?>"><?= $st[1] ?></span>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
+
+    <?php if (count($reserves) > 0): ?>
+    <div class="sonic-dash-card" style="--d:300ms">
+        <h5><i class="fas fa-bookmark"></i> <?= __('My Reservations') ?></h5>
+        <div class="sonic-timeline">
+            <?php foreach ($reserves as $hi => $rv): ?>
+            <div class="sonic-tl-item" style="--d:<?= $hi * 60 ?>ms">
+                <div class="sonic-tl-head">
+                    <div>
+                        <a class="sonic-tl-title" href="index.php?p=show_detail&id=<?= (int)$rv['biblio_id'] ?>"><?= htmlspecialchars($rv['title']) ?></a>
+                        <div class="sonic-tl-date"><?= __('Reserved') ?>: <?= htmlspecialchars($rv['reserve_date']) ?></div>
+                    </div>
+                    <span class="sonic-tl-status st-borrowed"><?= __('Reserved') ?></span>
                 </div>
             </div>
             <?php endforeach; ?>

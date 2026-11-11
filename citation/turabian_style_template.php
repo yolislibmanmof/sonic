@@ -3,7 +3,6 @@
 <html>
 <head>
     <title>Citation - Turabian</title>
-    <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic.css">
     <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-base.css">
     <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-modal.css">
     <style>body { padding: 2rem; }</style>

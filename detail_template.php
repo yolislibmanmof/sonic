@@ -54,7 +54,8 @@ if (!function_exists('sonic_similar_cover')) {
 }
 
 /* ===== 3. COVER ===== */
-$setBookmarked = trim(isset($_SESSION['bookmark'][$biblio_id]) ? 'active' : '');
+$sonic_bookmarked = function_exists('sonic_is_bookmarked') ? sonic_is_bookmarked($biblio_id) : isset($_SESSION['bookmark'][$biblio_id]);
+$setBookmarked = $sonic_bookmarked ? 'active' : '';
 $sonic_cover_raw = '';
 if ($sonic_has_db) {
     try {
@@ -103,9 +104,9 @@ $sonic_authors_string = sonic_format_authors($sonic_author_list);
 /* ===== 6. CITATIONS ===== */
 $sonic_year = $publish_year ?? date('Y');
 $sonic_title_clean = strip_tags(stripslashes($title ?? ''));
-$sonic_edition = $edition ?? '';
-$sonic_publisher = $publisher_name ?? '';
-$sonic_place = $publish_place ?? '';
+$sonic_edition = htmlspecialchars($edition ?? '', ENT_QUOTES);
+$sonic_publisher = htmlspecialchars($publisher_name ?? '', ENT_QUOTES);
+$sonic_place = htmlspecialchars($publish_place ?? '', ENT_QUOTES);
 $sonic_gmd = (($gmd_name ?? '') == 'Text') ? 'Print' : ($gmd_name ?? '');
 
 $sonic_citations = [];
@@ -244,8 +245,8 @@ if ($sonic_has_db) {
         </div>
 
         <div class="sonic-detail-actions">
-            <a href="javascript:void(0)" data-id="<?= $biblio_id ?>" class="sonic-action-btn bookMarkBook <?= $setBookmarked ?>" id="bookmarkBtn">
-                <i class="far fa-heart"></i> <span id="label-<?= $biblio_id ?>"><?= (isset($_SESSION['bookmark'][$biblio_id]) ? __('Bookmarked') : __('Bookmark')) ?></span>
+            <a href="javascript:void(0)" data-id="<?= $biblio_id ?>" data-label-on="<?= htmlspecialchars(__('Bookmarked'), ENT_QUOTES) ?>" data-label-off="<?= htmlspecialchars(__('Bookmark'), ENT_QUOTES) ?>" class="sonic-action-btn bookMarkBook <?= $setBookmarked ?>" id="bookmarkBtn">
+                <i class="far fa-heart"></i> <span id="label-<?= $biblio_id ?>"><?= ($sonic_bookmarked ? __('Bookmarked') : __('Bookmark')) ?></span>
             </a>
             <a href="javascript:void(0)" data-id="<?= $biblio_id ?>" data-title="<?= htmlspecialchars($title ?? '') ?>" data-target="#mediaSocialModal" class="sonic-action-btn">
                 <i class="fas fa-share-alt"></i> <?= __('Share') ?>
@@ -262,15 +263,15 @@ if ($sonic_has_db) {
     <!-- RIGHT MAIN -->
     <div class="sonic-detail-main">
         <div class="sonic-detail-header">
-            <p class="sonic-detail-category"><i class="fas fa-book"></i> <?= $gmd_name ?? '' ?></p>
-            <h1 class="sonic-detail-title"><?= stripslashes($title ?? '') ?></h1>
+            <p class="sonic-detail-category"><i class="fas fa-book"></i> <?= htmlspecialchars($gmd_name ?? '') ?></p>
+            <h1 class="sonic-detail-title"><?= htmlspecialchars(stripslashes($title ?? '')) ?></h1>
             <div class="sonic-detail-authors">
                 <?php if (is_array($authors ?? null)): ?>
                     <?php foreach ($authors as $a): ?>
                         <a href="index.php?author=<?= urlencode(is_array($a) ? ($a['author_name'] ?? '') : $a) ?>&search=search"><?= htmlspecialchars(is_array($a) ? ($a['author_name'] ?? '') : $a) ?></a>
                     <?php endforeach; ?>
                 <?php else: ?>
-                    <?= str_replace("<br />", ' ', $authors ?? '') ?>
+                    <?= function_exists('sonic_kses') ? sonic_kses(str_replace("<br />", ' ', $authors ?? '')) : str_replace("<br />", ' ', $authors ?? '') ?>
                 <?php endif; ?>
             </div>
         </div>
@@ -297,7 +298,7 @@ if ($sonic_has_db) {
                 <div class="sonic-info-block">
                     <h5><?= __('Abstract') ?></h5>
                     <div class="sonic-abstract-text">
-                        <?= $notes ? $notes : '<p style="color:var(--sonic-muted);font-style:italic;">' . __('Description Not Available') . '</p>' ?>
+                    <?= $notes ? sonic_kses($notes) : '<p style="color:var(--sonic-muted);font-style:italic;">' . __('Description Not Available') . '</p>' ?>
                     </div>
                 </div>
             </div>
@@ -306,11 +307,11 @@ if ($sonic_has_db) {
                 <div class="sonic-info-block">
                     <h5><?= __('Detail Information') ?></h5>
                     <dl class="sonic-detail-dl">
-                        <dt><?= __('Series Title') ?></dt><dd><?= $series_title ? $series_title : '-' ?></dd>
-                        <dt><?= __('Call Number') ?></dt><dd><span class="sonic-highlight"><?= $call_number ? $call_number : '-' ?></span></dd>
-                        <dt><?= __('Publisher') ?></dt><dd><?= $publish_place ?> : <?= $publisher_name ?>., <?= $publish_year ?></dd>
-                        <dt><?= __('Specific Detail Info') ?></dt><dd><?= $spec_detail_info ? $spec_detail_info : '-' ?></dd>
-                        <dt><?= __('Statement of Responsibility') ?></dt><dd><?= $sor ? $sor : '-' ?></dd>
+                        <dt><?= __('Series Title') ?></dt><dd><?= htmlspecialchars($series_title ?: '-') ?></dd>
+                        <dt><?= __('Call Number') ?></dt><dd><span class="sonic-highlight"><?= htmlspecialchars($call_number ?: '-') ?></span></dd>
+                        <dt><?= __('Publisher') ?></dt><dd><?= htmlspecialchars($publish_place) ?> : <?= htmlspecialchars($publisher_name) ?>., <?= htmlspecialchars($publish_year) ?></dd>
+                        <dt><?= __('Specific Detail Info') ?></dt><dd><?= htmlspecialchars($spec_detail_info ?: '-') ?></dd>
+                        <dt><?= __('Statement of Responsibility') ?></dt><dd><?= htmlspecialchars($sor ?: '-') ?></dd>
                     </dl>
                 </div>
                 <?php if (count($biblio_custom ?? []) > 0): ?>
@@ -318,7 +319,7 @@ if ($sonic_has_db) {
                     <h5><?= __('Other Information') ?></h5>
                     <dl class="sonic-detail-dl">
                         <?php foreach ($biblio_custom as $item): ?>
-                            <dt><?= $item['label'] ?></dt><dd><?= $item['value'] ? $item['value'] : '-' ?></dd>
+                        <dt><?= htmlspecialchars($item['label']) ?></dt><dd><?= htmlspecialchars($item['value'] ?: '-') ?></dd>
                         <?php endforeach; ?>
                     </dl>
                 </div>

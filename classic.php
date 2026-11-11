@@ -15,6 +15,73 @@ $member_image_path = getImagePath($sysconf, $member_image_name, 'persons');
 
 function assets($path = '') { return CURRENT_TEMPLATE_DIR . 'assets/' . $path; }
 
+/* ===== SONIC FASE 1 HELPERS ===== */
+if (!function_exists('sonic_common_list')) {
+    // Pengganti commonList() yang TIDAK ADA di SLiMS 9.8. Query DB langsung + cache.
+    function sonic_common_list($type) {
+        global $dbs;
+        static $cache = [];
+        if (isset($cache[$type])) return $cache[$type];
+        $cfg = [
+            'gmd'        => ['SELECT gmd_name FROM mst_gmd ORDER BY gmd_name LIMIT 50', __('All GMD/Media')],
+            'location'   => ['SELECT location_name FROM mst_location ORDER BY location_name LIMIT 50', __('All Locations')],
+            'collection' => ['SELECT coll_type_name FROM mst_coll_type ORDER BY coll_type_name LIMIT 50', __('All Collections')],
+            'colltype'   => ['SELECT coll_type_name FROM mst_coll_type ORDER BY coll_type_name LIMIT 50', __('All Collections')],
+        ];
+        if (!isset($cfg[$type])) return '';
+        list($sql, $allLabel) = $cfg[$type];
+        $out = '<option value="0">' . $allLabel . '</option>';
+        if (isset($dbs) && is_object($dbs)) {
+            try {
+                $q = $dbs->query($sql);
+                if ($q) while ($r = $q->fetch_row()) {
+                    $v = htmlspecialchars($r[0], ENT_QUOTES);
+                    $out .= '<option value="' . $v . '">' . $v . '</option>';
+                }
+            } catch (Throwable $e) {}
+        }
+        return $cache[$type] = $out;
+    }
+}
+if (!function_exists('sonic_is_bookmarked')) {
+    // Status bookmark dari DB (biblio_mark) — sumber kebenaran lintas-login.
+    function sonic_is_bookmarked($biblio_id) {
+        global $dbs;
+        static $set = null;
+        if (!class_exists('utility') || !utility::isMemberLogin()) return false;
+        if ($set === null) {
+            $set = [];
+            $mid = isset($_SESSION['mid']) ? $dbs->real_escape_string($_SESSION['mid']) : '';
+            if ($mid !== '' && isset($dbs) && is_object($dbs)) {
+                try {
+                    $q = $dbs->query("SELECT biblio_id FROM biblio_mark WHERE member_id='{$mid}'");
+                    if ($q) while ($r = $q->fetch_row()) $set[(int)$r[0]] = true;
+                } catch (Throwable $e) {}
+            }
+        }
+        return isset($set[(int)$biblio_id]);
+    }
+}
+if (!function_exists('sonic_kses')) {
+    // Sanitasi HTML ringan: buang script/iframe & atribut event & javascript: (untuk notes/abstrak).
+    function sonic_kses($html) {
+        $html = (string)$html;
+        $html = preg_replace('#<(script|style|iframe|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
+        $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
+        $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*javascript:[^"\']*\2#i', '$1=$2#$2', $html);
+        return $html;
+    }
+}
+if (!function_exists('sonic_asset_ver')) {
+    // Cache-bust berbasis filemtime (bukan detik) agar CSS/JS bisa di-cache browser.
+    function sonic_asset_ver($rel) {
+        static $cache = [];
+        if (isset($cache[$rel])) return $cache[$rel];
+        $path = __DIR__ . '/assets/' . ltrim($rel, '/');
+        return $cache[$rel] = (is_file($path) ? (string)filemtime($path) : '1');
+    }
+}
+
 function getPopularBiblio($dbs, $limit = 5) {
     $sql = "SELECT b.biblio_id, b.title, b.image, COUNT(*) AS total
             FROM loan AS l
@@ -30,7 +97,9 @@ function getPopularBiblio($dbs, $limit = 5) {
     if ($query->num_rows < $limit) {
         $need = $limit - $query->num_rows;
         if ($need < 0) $need = $limit;
-        $sql = "SELECT biblio_id, title, image FROM biblio ORDER BY last_update DESC LIMIT {$need}";
+        $exclude = array_map(fn($r) => (int)$r['biblio_id'], $return);
+        $where = $exclude ? 'WHERE biblio_id NOT IN (' . implode(',', $exclude) . ')' : '';
+        $sql = "SELECT biblio_id, title, image FROM biblio {$where} ORDER BY last_update DESC LIMIT {$need}";
         $query = $dbs->query($sql);
         while ($data = $query->fetch_assoc()) { $return[] = $data; }
     }
@@ -93,7 +162,8 @@ function getLatestTopic($dbs, $limit = 5) {
 }
 
 function getTopic($dbs, $biblio_id) {
-    $query = $dbs->query("SELECT topic FROM biblio_topic AS bt JOIN mst_topic AS mt ON bt.topic_id=mt.topic_id");
+    $biblio_id = (int)$biblio_id;
+    $query = $dbs->query("SELECT topic FROM biblio_topic AS bt JOIN mst_topic AS mt ON bt.topic_id=mt.topic_id WHERE bt.biblio_id={$biblio_id}");
     $return = array();
     while ($data = $query->fetch_row()) { $return[] = $data[0]; }
     return $return;
@@ -141,7 +211,7 @@ function getImagePath($sysconf, $image, $path = 'docs') {
 function truncate($text, $length) {
     $length = abs((int)$length);
     if (strlen($text) > $length) {
-        $text = preg_replace("/^(.{1,$length})(s.*|$)/s", '\1...', $text);
+        $text = preg_replace("/^(.{1,$length})(\s.*|$)/s", '\1...', $text);
     }
     return ($text);
 }

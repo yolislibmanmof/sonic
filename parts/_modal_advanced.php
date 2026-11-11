@@ -33,15 +33,15 @@
                 </div>
                 <div class="sonic-adv-field">
                     <label><?= __('Location') ?></label>
-                    <select name="location"><?= commonList('location') ?></select>
+                    <select name="location"><?= sonic_common_list('location') ?></select>
                 </div>
                 <div class="sonic-adv-field">
                     <label><?= __('GMD') ?></label>
-                    <select name="gmd"><?= commonList('gmd') ?></select>
+                    <select name="gmd"><?= sonic_common_list('gmd') ?></select>
                 </div>
                 <div class="sonic-adv-field">
                     <label><?= __('Collection Type') ?></label>
-                    <select name="colltype"><?= commonList('collection') ?></select>
+                    <select name="colltype"><?= sonic_common_list('collection') ?></select>
                 </div>
             </div>
 

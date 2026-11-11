@@ -22,7 +22,6 @@ $authors_string = implode(', ', $author_list) . (count($authors) > 2 ? ' et al.'
 <html>
 <head>
     <title>Citation - MLA</title>
-    <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic.css">
     <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-base.css">
     <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-modal.css">
     <style>body { padding: 2rem; }</style>

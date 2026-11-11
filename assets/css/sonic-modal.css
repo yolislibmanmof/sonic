@@ -38,3 +38,9 @@
 .sonic-dewey-item:hover{border-color:var(--sonic-neon);transform:translateY(-4px);box-shadow:0 12px 30px rgba(0,240,255,.2)}
 .sonic-dewey-item img{width:64px;height:64px;object-fit:contain}
 .sonic-dewey-item span{font-size:.8rem;line-height:1.4}
+
+/* SONIC colorbox (citation popup) */
+.sonic-colorbox #cboxContent{background:var(--sonic-bg-2,#0a0e1a);border:1px solid var(--glass-border,rgba(0,240,255,.25));border-radius:14px;box-shadow:0 0 40px rgba(0,240,255,.25)}
+.sonic-colorbox #cboxLoadedContent{background:transparent;margin:0}
+.sonic-colorbox #cboxClose{color:var(--sonic-neon,#00f0ff);background:transparent;top:6px;right:6px}
+.sonic-colorbox #cboxOverlay{background:rgba(0,0,0,.85)}

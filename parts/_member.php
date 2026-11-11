@@ -12,7 +12,7 @@ if ($is_login) {
     $sonic_member['image'] = $_SESSION['m_image'] ?? 'person.png';
     $sonic_member['type']  = $_SESSION['m_member_type'] ?? ($_SESSION['m_type'] ?? '');
     try {
-        $m_id = $_SESSION['m_id'] ?? ($_SESSION['member_id'] ?? null);
+        $m_id = $_SESSION['mid'] ?? ($_SESSION['m_id'] ?? ($_SESSION['member_id'] ?? null));
         if ($m_id && isset($dbs)) {
             $mid = $dbs->escape_string($m_id);
             $q = $dbs->query("SELECT m.member_name, m.expire_date, m.member_image, mt.member_type_name
@@ -37,12 +37,8 @@ if ($is_login) {
 
 // Deteksi mode halaman
 $sonic_is_login_page = !$is_login && (empty($_GET['sec']) || $_GET['sec'] === '');
-$sonic_is_register   = isset($_GET['sec']) && $_GET['sec'] === 'register';
-$sonic_page_title    = $sonic_is_login_page ? __('Member Login')
-                         : ($sonic_is_register ? __('Member Registration')
-                         : __('Member Area'));
-$sonic_page_icon     = $sonic_is_login_page ? 'fa-user-astronaut'
-                         : ($sonic_is_register ? 'fa-user-plus' : 'fa-id-card');
+$sonic_page_title    = $sonic_is_login_page ? __('Member Login') : __('Member Area');
+$sonic_page_icon     = $sonic_is_login_page ? 'fa-user-astronaut' : 'fa-id-card';
 ?>
 
 <div class="sonic-member-wrap">
@@ -88,8 +84,6 @@ $sonic_page_icon     = $sonic_is_login_page ? 'fa-user-astronaut'
                 <p class="sonic-auth-sub">
                     <?php if ($sonic_is_login_page): ?>
                         <?= __('Secure access to your digital library') ?>
-                    <?php elseif ($sonic_is_register): ?>
-                        <?= __('Create your sonic account') ?>
                     <?php else: ?>
                         <?= __('Manage your library profile') ?>
                     <?php endif; ?>
@@ -103,6 +97,11 @@ $sonic_page_icon     = $sonic_is_login_page ? 'fa-user-astronaut'
 
         <div class="sonic-auth-body">
             <?php echo $main_content; ?>
+            <?php if ($sonic_is_login_page): ?>
+            <div style="margin-top:1rem;text-align:center;">
+                <a href="index.php?p=forgot" class="sonic-mini-btn" style="justify-content:center;"><i class="fas fa-key"></i> <?= __('Forgot password?') ?></a>
+            </div>
+            <?php endif; ?>
         </div>
     </div>
 

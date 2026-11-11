@@ -54,11 +54,15 @@
         if (cards.length === 0 && !qs('.sonic-result-main .sonic-paging')) {
             main.innerHTML = emptyStateHTML(qLabels);
         } else {
+            var total = null;
+            var foundStrong = document.querySelector('.search-found-info strong');
+            if (foundStrong) { var n = parseInt(foundStrong.textContent.replace(/[^\d]/g, ''), 10); if (!isNaN(n)) total = n; }
             var bar = document.createElement('div');
             bar.className = 'sonic-result-bar';
-            bar.innerHTML = '<span><i class="fas fa-bolt"></i> <b>' + cards.length + '</b> result' + (cards.length === 1 ? '' : 's') + ' on this page</span>' +
+            bar.innerHTML = '<span><i class="fas fa-bolt"></i> <b>' + (total !== null ? total : cards.length) + '</b> ' + (total !== null ? 'total results' : 'result' + (cards.length === 1 ? '' : 's') + ' on this page') + '</span>' +
                 (qLabels.length ? '<span class="sonic-result-q"><i class="fas fa-search"></i> ' + esc(qLabels.join(' · ')) + '</span>' : '');
-            main.insertBefore(bar, main.firstChild);
+            var toolbar = main.querySelector('.sonic-result-toolbar');
+            if (toolbar) { toolbar.insertAdjacentElement('afterend', bar); } else { main.insertBefore(bar, main.firstChild); }
             cards.forEach(function (c, i) {
                 c.style.animationDelay = (i * 70) + 'ms';
                 c.classList.add('sonic-rise');
@@ -105,6 +109,24 @@
             })
             .catch(function () { /* silent */ });
     });
+
+        /* ===== SORT (filter[sort] JSON sesuai core) ===== */
+        var sortSel = document.getElementById('sonicSort');
+        if (sortSel) {
+            try {
+                var f = JSON.parse(params.get('filter') || '{}');
+                if (f.sort) sortSel.value = f.sort;
+            } catch (e) {}
+            sortSel.addEventListener('change', function () {
+                var p = new URLSearchParams(window.location.search);
+                var filter = {};
+                try { filter = JSON.parse(p.get('filter') || '{}'); } catch (e) {}
+                if (this.value) { filter.sort = this.value; } else { delete filter.sort; }
+                if (Object.keys(filter).length) { p.set('filter', JSON.stringify(filter)); } else { p.delete('filter'); }
+                if (!p.has('search')) p.set('search', 'search');
+                window.location.search = p.toString();
+            });
+        }
 
     console.log('%c🎛 SONIC Search Experience Fase B: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
 })();
