@@ -1,10 +1,11 @@
 <?php
 /**
- * Visitor template (SONIC Edition — FASE 5.1 Kiosk Ultimate, kompatibel SLiMS 9.8)
+ * Visitor template (SONIC — FINAL, kompatibel SLiMS 9.8)
  * Kontrak core: POST counter=1, memberID, institution + CSRF (Volnix) → JSON {message,image,new_token}.
- * Load-order safe: path aset & statistik dihitung lokal (file ini di-require sebelum classic.php).
+ * FIX: $sonic_last7_max didefinisikan eksplisit (sebelumnya hilang → fatal PHP 8).
  */
 $main_template_path = __DIR__ . '/login_template.inc.php';
+require_once __DIR__ . '/parts/_security.php';
 
 $sonic_csrf_name  = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTokenName() : 'csrf_token';
 $sonic_csrf_token = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getToken() : '';
@@ -19,31 +20,41 @@ $sonic_asset_base = ($sonic_tpl['dir'] ?? 'template') . '/' . ($sonic_tpl['theme
 $sonic_css_ver = @filemtime(__DIR__ . '/assets/css/sonic-visitor.css') ?: 1;
 $sonic_js_ver  = @filemtime(__DIR__ . '/assets/js/sonic-visitor.js') ?: 1;
 
-/* ===== STATISTIK KUNJUNGAN (defensif, tanpa fatal) ===== */
-$sonic_stats = ['today' => 0, 'week' => 0, 'month' => 0, 'year' => 0, 'total' => 0];
-$sonic_last7 = [];
-for ($i = 6; $i >= 0; $i--) $sonic_last7[date('Y-m-d', strtotime("-$i day"))] = 0;
-if (isset($dbs) && is_object($dbs)) {
-    try {
-        $vt = null;
-        foreach (['visitor', 'visitor_count'] as $cand) { $r = $dbs->query("SHOW TABLES LIKE '" . $cand . "'"); if ($r && $r->num_rows) { $vt = $cand; break; } }
-        if ($vt) {
-            $vc = null; $cr = $dbs->query("SHOW COLUMNS FROM `" . $vt . "`");
-            if ($cr) { while ($c = $cr->fetch_assoc()) { $f = strtolower($c['Field']); $t = strtolower($c['Type']); if (in_array($f, ['checkin_date','visitor_date','date','input_date','created_at']) || strpos($t,'date')===0 || strpos($t,'timestamp')===0) { $vc = $c['Field']; break; } } }
-            if ($vc) {
-                $one = function ($sql) use ($dbs) { $r = $dbs->query($sql); return $r ? (int)($r->fetch_row()[0] ?? 0) : 0; };
-                $sonic_stats['today'] = $one("SELECT COUNT(*) FROM `$vt` WHERE DATE(`$vc`)=CURDATE()");
-                $sonic_stats['week']  = $one("SELECT COUNT(*) FROM `$vt` WHERE YEARWEEK(`$vc`,1)=YEARWEEK(CURDATE(),1)");
-                $sonic_stats['month'] = $one("SELECT COUNT(*) FROM `$vt` WHERE DATE_FORMAT(`$vc`,'%Y-%m')=DATE_FORMAT(CURDATE(),'%Y-%m')");
-                $sonic_stats['year']  = $one("SELECT COUNT(*) FROM `$vt` WHERE YEAR(`$vc`)=YEAR(CURDATE())");
-                $sonic_stats['total'] = $one("SELECT COUNT(*) FROM `$vt`");
-                $r = $dbs->query("SELECT DATE(`$vc`) d, COUNT(*) c FROM `$vt` WHERE `$vc` >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY DATE(`$vc`)");
-                if ($r) while ($row = $r->fetch_row()) { if (isset($sonic_last7[$row[0]])) $sonic_last7[$row[0]] = (int)$row[1]; }
+/* ===== STATISTIK KUNJUNGAN (cache 30 detik) ===== */
+$sonic_kiosk = sonic_cache('kiosk_stats_v2', 30, function () use ($dbs) {
+    $stats = ['today' => 0, 'week' => 0, 'month' => 0, 'year' => 0, 'total' => 0];
+    $last7 = [];
+    for ($i = 6; $i >= 0; $i--) $last7[date('Y-m-d', strtotime("-$i day"))] = 0;
+    if (isset($dbs) && is_object($dbs)) {
+        try {
+            $vt = null;
+            foreach (['visitor', 'visitor_count'] as $cand) { $r = $dbs->query("SHOW TABLES LIKE '" . $cand . "'"); if ($r && $r->num_rows) { $vt = $cand; break; } }
+            if ($vt) {
+                $vc = null; $cr = $dbs->query("SHOW COLUMNS FROM `" . $vt . "`");
+                if ($cr) { while ($c = $cr->fetch_assoc()) { $f = strtolower($c['Field']); $t = strtolower($c['Type']); if (in_array($f, ['checkin_date','visitor_date','date','input_date','created_at']) || strpos($t,'date')===0 || strpos($t,'timestamp')===0) { $vc = $c['Field']; break; } } }
+                if ($vc) {
+                    $one = function ($sql) use ($dbs) { $r = $dbs->query($sql); return $r ? (int)($r->fetch_row()[0] ?? 0) : 0; };
+                    $stats['today'] = $one("SELECT COUNT(*) FROM `$vt` WHERE DATE(`$vc`)=CURDATE()");
+                    $stats['week']  = $one("SELECT COUNT(*) FROM `$vt` WHERE YEARWEEK(`$vc`,1)=YEARWEEK(CURDATE(),1)");
+                    $stats['month'] = $one("SELECT COUNT(*) FROM `$vt` WHERE DATE_FORMAT(`$vc`,'%Y-%m')=DATE_FORMAT(CURDATE(),'%Y-%m')");
+                    $stats['year']  = $one("SELECT COUNT(*) FROM `$vt` WHERE YEAR(`$vc`)=YEAR(CURDATE())");
+                    $stats['total'] = $one("SELECT COUNT(*) FROM `$vt`");
+                    $r = $dbs->query("SELECT DATE(`$vc`) d, COUNT(*) c FROM `$vt` WHERE `$vc` >= DATE_SUB(CURDATE(), INTERVAL 6 DAY) GROUP BY DATE(`$vc`)");
+                    if ($r) while ($row = $r->fetch_row()) { if (isset($last7[$row[0]])) $last7[$row[0]] = (int)$row[1]; }
+                }
             }
-        }
-    } catch (Throwable $e) {}
+        } catch (Throwable $e) {}
+    }
+    return ['stats' => $stats, 'last7' => $last7];
+});
+if (!is_array($sonic_kiosk) || !isset($sonic_kiosk['stats'], $sonic_kiosk['last7'])) {
+    $sonic_kiosk = ['stats' => ['today'=>0,'week'=>0,'month'=>0,'year'=>0,'total'=>0], 'last7' => []];
+    for ($i = 6; $i >= 0; $i--) $sonic_kiosk['last7'][date('Y-m-d', strtotime("-$i day"))] = 0;
 }
-$sonic_last7_max = max(1, max($sonic_last7));
+$sonic_stats = $sonic_kiosk['stats'];
+$sonic_last7 = $sonic_kiosk['last7'];
+$sonic_last7_max = max(1, max($sonic_last7)); // WAJIB ADA — pembagi sparkline
+
 $sonic_stat_cards = [
     ['today', _('Today'),        'fa-calendar-day'],
     ['week',  _('This Week'),    'fa-calendar-week'],

@@ -1,5 +1,5 @@
 <?php
-# @Filename: _navbar.php (SONIC v6 — Profil menu + Help moved to extra)
+# @Filename: _navbar.php (SONIC — FINAL)
 
 $main_menus = [
     'home'      => ['text' => __('Home'),        'url' => 'index.php',                      'icon' => 'fas fa-home',        'p' => ''],
@@ -22,6 +22,7 @@ foreach (preg_split('/\r\n|\r|\n|,/', (string)($sysconf['template']['sonic_extra
     if (strpos($_line, '|') !== false) { list($_lb, $_url) = array_map('trim', explode('|', $_line, 2)); }
     else { $_url = $_line; $_lb = ''; }
     if ($_url === '') continue;
+    if (function_exists('sonic_http_url')) { $_url = sonic_http_url($_url); if ($_url === '') continue; }
     $_q = parse_url($_url, PHP_URL_QUERY); $_p = '';
     if ($_q) { parse_str($_q, $_qq); $_p = $_qq['p'] ?? ''; }
     if ($_lb === '') {
@@ -31,7 +32,6 @@ foreach (preg_split('/\r\n|\r|\n|,/', (string)($sysconf['template']['sonic_extra
     }
     $sonic_extra_menus[] = ['text'=>$_lb, 'url'=>$_url, 'icon'=>$_sonic_icon_map[$_p] ?? 'fas fa-link', 'p'=>$_p];
 }
-/* Bantuan selalu masuk dropdown "Lainnya" (di depan menu kustom) */
 $sonic_extra_menus = array_merge([
     ['text' => __('Help'), 'url' => 'index.php?p=help', 'icon' => 'fas fa-question-circle', 'p' => 'help'],
 ], $sonic_extra_menus);
@@ -59,9 +59,9 @@ $cur_s = $_GET['sec'] ?? '';
             }
             ?>
             <div class="sonic-brand-text">
-                <h1 title="<?php echo htmlspecialchars($sysconf['library_name']); ?>"><?php echo $sysconf['library_name']; ?></h1>
+                <h1 title="<?php echo htmlspecialchars($sysconf['library_name']); ?>"><?php echo htmlspecialchars($sysconf['library_name'], ENT_QUOTES); ?></h1>
                 <?php if (!empty($sysconf['template']['sonic_library_subname'])) : ?>
-                    <h2 title="<?php echo htmlspecialchars($sysconf['template']['sonic_library_subname']); ?>"><?php echo $sysconf['template']['sonic_library_subname']; ?></h2>
+                <h2 title="<?php echo htmlspecialchars($sysconf['template']['sonic_library_subname']); ?>"><?php echo htmlspecialchars($sysconf['template']['sonic_library_subname'], ENT_QUOTES); ?></h2>
                 <?php endif; ?>
             </div>
         </a>
@@ -127,19 +127,26 @@ $cur_s = $_GET['sec'] ?? '';
             $langstr = '';
             $current_lang = ['name' => 'EN', 'code' => 'en'];
             $select_lang = $_COOKIE['select_lang'] ?? $sysconf['default_lang'];
+            // Baca query string ASLI (filter_input), fallback ke $_SERVER yang sudah di-stripslashes.
+            $sonic_raw_qs = filter_input(INPUT_SERVER, 'QUERY_STRING', FILTER_UNSAFE_RAW);
+            if (!is_string($sonic_raw_qs) || $sonic_raw_qs === '') $sonic_raw_qs = stripslashes((string)($_SERVER['QUERY_STRING'] ?? ''));
+            $sonic_lang_qs = [];
+            if ($sonic_raw_qs !== '') parse_str($sonic_raw_qs, $sonic_lang_qs);
+            unset($sonic_lang_qs['select_lang']);
+            $sonic_lang_prefix = 'index.php?' . (empty($sonic_lang_qs) ? '' : http_build_query($sonic_lang_qs) . '&');
             foreach ($available_languages ?? [] as $lang_index) {
                 $lang_code = $lang_index[0];
                 $lang_name = $lang_index[1];
                 $code_arr = explode('_', $lang_code);
                 $code_flag = strtolower($code_arr[1] ?? 'en');
                 if ($lang_code == $select_lang) $current_lang = ['name' => $lang_name, 'code' => $code_flag];
-                $langstr .= '<a class="dropdown-item" href="index.php?select_lang=' . $lang_code . '"><span class="flag-icon flag-icon-' . $code_flag . '" style="border-radius:2px;margin-right:.4rem;"></span>' . $lang_name . '</a>';
+                $langstr .= '<a class="dropdown-item" href="' . htmlspecialchars($sonic_lang_prefix . 'select_lang=' . urlencode($lang_code), ENT_QUOTES) . '"><span class="flag-icon flag-icon-' . htmlspecialchars($code_flag, ENT_QUOTES) . '" style="border-radius:2px;margin-right:.4rem;"></span>' . htmlspecialchars($lang_name, ENT_QUOTES) . '</a>';
             }
             ?>
             <li class="dropdown sonic-nav-protected">
                 <a class="nav-link dropdown-toggle" href="#" id="languageMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" style="color:var(--sonic-text);">
                     <i class="fas fa-globe" style="color:var(--sonic-neon);"></i>
-                    <span class="flag-icon flag-icon-<?= $current_lang['code'] ?>" style="border-radius:2px;"></span>
+                    <span class="flag-icon flag-icon-<?= htmlspecialchars($current_lang['code'], ENT_QUOTES) ?>" style="border-radius:2px;"></span>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right" aria-labelledby="languageMenuButton">
                     <h6 class="dropdown-header"><?= __('Select Language') ?>:</h6>

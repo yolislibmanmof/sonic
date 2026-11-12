@@ -1,8 +1,10 @@
 /**
- * SONIC OPAC v2 — Hyperdrive Engine
+ * SONIC OPAC v2 — Hyperdrive Engine (FINAL)
  */
 document.addEventListener('DOMContentLoaded', function () {
     'use strict';
+
+    var reduceMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     /* ===== 1. NAVBAR: scroll state + progress bar + burger ===== */
     var navbar = document.getElementById('sonicNavbar');
@@ -22,30 +24,44 @@ document.addEventListener('DOMContentLoaded', function () {
     onScroll();
     if (burger && nav) burger.addEventListener('click', function () { nav.classList.toggle('open'); });
 
-    /* ===== 2. HERO PHOTO SLIDER (Ken Burns + crossfade) ===== */
+    /* ===== 2. HERO PHOTO SLIDER (FINAL — stabil, ringan, tahan versi markup apa pun) ===== */
     var slides = document.querySelectorAll('.sonic-slide');
     if (slides.length > 0) {
         var dotsWrap = document.getElementById('sliderDots');
         var current = 0, timer = null;
 
-        slides.forEach(function (_, i) {
-            var d = document.createElement('button');
-            d.type = 'button';
-            d.className = 'sonic-dot-btn' + (i === 0 ? ' active' : '');
-            d.addEventListener('click', function () { go(i); restart(); });
-            if (dotsWrap) dotsWrap.appendChild(d);
-        });
+        // Pengaman: isi background dari data-bg bila ada; biarkan bila sudah inline.
+        function ensureBg(el) {
+            if (!el) return;
+            var bg = el.getAttribute('data-bg');
+            if (bg && !el.style.backgroundImage) el.style.backgroundImage = "url('" + bg + "')";
+        }
+        slides.forEach(function (el) { ensureBg(el); });
+
+        if (slides.length > 1 && dotsWrap) {
+            slides.forEach(function (_, i) {
+                var d = document.createElement('button');
+                d.type = 'button';
+                d.className = 'sonic-dot-btn' + (i === 0 ? ' active' : '');
+                d.setAttribute('aria-label', 'Slide ' + (i + 1));
+                d.addEventListener('click', function () { go(i); restart(); });
+                dotsWrap.appendChild(d);
+            });
+        }
         var dots = dotsWrap ? dotsWrap.querySelectorAll('.sonic-dot-btn') : [];
 
         function go(i) {
+            if (slides.length < 2) return;
             slides[current].classList.remove('active');
             if (dots[current]) dots[current].classList.remove('active');
             current = (i + slides.length) % slides.length;
+            ensureBg(slides[current]);
             slides[current].classList.add('active');
             if (dots[current]) dots[current].classList.add('active');
         }
         function restart() {
-            if (timer) clearInterval(timer);
+            if (timer) { clearInterval(timer); timer = null; }
+            if (document.hidden || reduceMotion || slides.length < 2) return;
             timer = setInterval(function () { go(current + 1); }, 6000);
         }
 
@@ -56,9 +72,10 @@ document.addEventListener('DOMContentLoaded', function () {
 
         var hero = document.getElementById('sonicSlider');
         if (hero) {
-            hero.addEventListener('mouseenter', function () { if (timer) clearInterval(timer); });
+            hero.addEventListener('mouseenter', function () { if (timer) { clearInterval(timer); timer = null; } });
             hero.addEventListener('mouseleave', restart);
         }
+        document.addEventListener('visibilitychange', restart);
         restart();
     }
 
@@ -119,32 +136,45 @@ document.addEventListener('DOMContentLoaded', function () {
         if (m) m.classList.add('active');
     });
 
-    /* ===== 5. TITLE SCRAMBLE-DECODE EFFECT ===== */
+    /* ===== 5. TITLE SCRAMBLE-DECODE EFFECT (hormati reduced-motion) ===== */
     var title = document.getElementById('sonicTitle');
     if (title) {
         var finalText = title.getAttribute('data-text') || title.textContent;
-        var glyphs = '#01<>[]{}=+*^?/\\_—';
-        var frame = 0;
-        var iv = setInterval(function () {
-            frame++;
-            var revealed = Math.floor(frame / 2);
-            var out = '';
-            for (var i = 0; i < finalText.length; i++) {
-                if (i < revealed || finalText[i] === ' ') out += finalText[i];
-                else out += glyphs[Math.floor(Math.random() * glyphs.length)];
-            }
-            title.textContent = out;
-            if (revealed >= finalText.length) { clearInterval(iv); title.textContent = finalText; }
-        }, 40);
+        if (reduceMotion) {
+            title.textContent = finalText;
+        } else {
+            var glyphs = '#01<>[]{}=+*^?/\\_—';
+            var frame = 0;
+            var iv = setInterval(function () {
+                frame++;
+                var revealed = Math.floor(frame / 2);
+                var out = '';
+                for (var i = 0; i < finalText.length; i++) {
+                    if (i < revealed || finalText[i] === ' ') out += finalText[i];
+                    else out += glyphs[Math.floor(Math.random() * glyphs.length)];
+                }
+                title.textContent = out;
+                if (revealed >= finalText.length) { clearInterval(iv); title.textContent = finalText; }
+            }, 40);
+        }
     }
 
-    /* ===== 6. SPOTLIGHT CARDS ===== */
+    /* ===== 6. SPOTLIGHT CARDS (rAF-throttled — halus, tanpa layout thrash) ===== */
     document.querySelectorAll('.sonic-book, .sonic-list-card').forEach(function (card) {
+        var pending = false, mx = 0, my = 0;
         card.addEventListener('mousemove', function (e) {
-            var r = card.getBoundingClientRect();
-            card.style.setProperty('--mouse-x', ((e.clientX - r.left) / r.width) * 100 + '%');
-            card.style.setProperty('--mouse-y', ((e.clientY - r.top) / r.height) * 100 + '%');
-        });
+            mx = e.clientX; my = e.clientY;
+            if (pending) return;
+            pending = true;
+            requestAnimationFrame(function () {
+                pending = false;
+                var r = card.getBoundingClientRect();
+                if (r.width > 0 && r.height > 0) {
+                    card.style.setProperty('--mouse-x', ((mx - r.left) / r.width) * 100 + '%');
+                    card.style.setProperty('--mouse-y', ((my - r.top) / r.height) * 100 + '%');
+                }
+            });
+        }, { passive: true });
     });
 
     /* ===== 7. MODALS ===== */

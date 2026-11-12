@@ -23,21 +23,25 @@ jQuery(function ($) {
         });
     }
 
-    /* ===== 2. BOOKMARK (core: POST bookmark_id + callback=json) ===== */
+    /* ===== 2. BOOKMARK (core: INSERT IGNORE / delete_bookmark — toggle BENAR) ===== */
     $(document).on('click', '.bookMarkBook', function (e) {
         e.preventDefault();
         var $b = $(this), id = $b.data('id');
-        $.post('index.php?p=member&sec=bookmark', { bookmark_id: id, callback: 'json' })
+        var removing = $b.hasClass('active');
+        var payload = { bookmark_id: id, callback: 'json' };
+        if (removing) payload.delete_bookmark = true;
+        $.post('index.php?p=member', payload)
             .done(function (res) {
+                if (typeof res === 'string') {
+                    try { res = JSON.parse(res); }
+                    catch (err) { window.location = 'index.php?p=member&destination=' + encodeURIComponent(window.location.href); return; }
+                }
                 if (res && res.status) {
-                    var on = !$b.hasClass('active');
-                    $b.toggleClass('active', on);
+                    var on = !removing;
+                    $('.bookMarkBook[data-id="' + id + '"]').toggleClass('active', on);
                     var $lbl = $('#label-' + id);
-                    if ($lbl.length) {
-                        if (res.label) { $lbl.text(res.label); }
-                        else { $lbl.text(on ? ($b.data('label-on') || 'Bookmarked') : ($b.data('label-off') || 'Bookmark')); }
-                    }
-                    if (window.toastr) toastr.success(res.message || 'Bookmark disimpan');
+                    if ($lbl.length) $lbl.text(on ? ($b.data('label-on') || res.label || 'Bookmarked') : ($b.data('label-off') || 'Bookmark'));
+                    if (window.toastr) toastr.success(res.message || (on ? 'Bookmark disimpan' : 'Bookmark dihapus'));
                 } else if (window.toastr) { toastr.error((res && res.message) || 'Gagal menyimpan bookmark'); }
             })
             .fail(function () {
@@ -51,6 +55,10 @@ jQuery(function ($) {
         var id = $(this).data('biblio') || $(this).data('id');
         $.post('index.php?p=member', { biblio: [id], callback: 'json' })
             .done(function (data) {
+                if (typeof data === 'string') {
+                try { data = JSON.parse(data); }
+                catch (err) { window.location = 'index.php?p=member&destination=' + encodeURIComponent(window.location.href); return; }
+                }
                 if (data && data.status) {
                     if (window.toastr) toastr.success(data.message || 'Ditambahkan ke basket');
                     if (typeof data.count !== 'undefined') setBadge(data.count);

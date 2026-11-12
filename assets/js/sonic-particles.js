@@ -227,8 +227,11 @@
             if (glints[j].y < -40) { glints[j].y = H + 40; glints[j].x = Math.random() * W; }
         }
         draw(t);
-        requestAnimationFrame(frame);
+        if (!document.hidden) requestAnimationFrame(frame);
     }
+    document.addEventListener('visibilitychange', function () {
+        if (!document.hidden && !REDUCED) { last = 0; requestAnimationFrame(frame); }
+    });
 
     /* ===== EVENTS ===== */
     window.addEventListener('scroll', function () { scrollY = window.scrollY || 0; }, { passive: true });

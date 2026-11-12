@@ -1,7 +1,9 @@
 /**
- * SONIC OPAC — Detail Record Revolution (FINAL)
+ * SONIC OPAC — Detail Record Revolution (FINAL — BATCH 1)
  * Modul 1: 3D Book, Tabs, Citations+Export, Cover, Micro-interactions.
  * Modul 2 (Fase 3): Zoom, QR, Reader, Copy Call, Reviews.
+ * Patch: token ulasan (new_token), guard respons, reset bintang, anti double-submit,
+ *        toast timer, clipboard fallback, ESC modal, hook QR lokal (Batch 3).
  */
 (function () {
     'use strict';
@@ -127,25 +129,62 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
-/* ===== MODUL 2 — FASE 3: Zoom, QR, Reader, Copy Call, Reviews ===== */
+/* ===== MODUL 2 — FASE 3: Zoom, QR, Reader, Copy Call, Reviews (FINAL BATCH 1) ===== */
 (function () {
     'use strict';
     function $(s, c) { return (c || document).querySelector(s); }
     function $all(s, c) { return Array.prototype.slice.call((c || document).querySelectorAll(s)); }
     function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
-    function base() { var l = $('link[href*="sonic-base.css"]'); return l ? l.href.replace(/assets\/css\/sonic-base\.css.*$/, '') : 'template/sonic/'; }
-    function toast(m) { var t = $('#copyToast'), x = $('#copyToastText'); if (t && x) { x.textContent = m; t.classList.add('show'); setTimeout(function () { t.classList.remove('show'); }, 2200); } else if (window.toastr) toastr.success(m); }
-    function copy(text) { if (navigator.clipboard) navigator.clipboard.writeText(text).then(function () { toast('Disalin!'); }); else { var ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); document.execCommand('copy'); ta.remove(); toast('Disalin!'); } }
+    function base() { if (window.SONIC_CFG && window.SONIC_CFG.base) return window.SONIC_CFG.base; var l = $('link[href*="sonic-base.css"]'); return l ? l.href.replace(/assets\/css\/sonic-base\.css.*$/, '') : 'template/sonic/'; }
+
+    var toastTimer2 = null;
+    function toast(m) { var t = $('#copyToast'), x = $('#copyToastText'); if (t && x) { x.textContent = m; t.classList.add('show'); clearTimeout(toastTimer2); toastTimer2 = setTimeout(function () { t.classList.remove('show'); }, 2200); } else if (window.toastr) toastr.success(m); }
+    function copy(text) {
+        function fb() { var ta = document.createElement('textarea'); ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); try { document.execCommand('copy'); toast('Disalin!'); } catch (e) {} document.body.removeChild(ta); }
+        if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(text).then(function () { toast('Disalin!'); }, fb); else fb();
+    }
+
+    var escBound = false;
     function modal(id, html) {
         var m = document.getElementById(id);
-        if (!m) { m = document.createElement('div'); m.id = id; m.className = 'sonic-modal'; m.innerHTML = '<div class="sonic-terminal sonic-terminal-wide"><div class="sonic-terminal-head"><span class="sonic-dot r"></span><span class="sonic-dot y"></span><span class="sonic-dot g"></span><span class="sonic-terminal-title"></span><button type="button" class="sonic-terminal-close" data-close>&times;</button></div><div class="sonic-terminal-body"></div></div>'; document.body.appendChild(m); m.addEventListener('click', function (e) { if (e.target === m || e.target.hasAttribute('data-close')) m.classList.remove('active'); }); }
+        if (!m) {
+            m = document.createElement('div'); m.id = id; m.className = 'sonic-modal';
+            m.innerHTML = '<div class="sonic-terminal sonic-terminal-wide"><div class="sonic-terminal-head"><span class="sonic-dot r"></span><span class="sonic-dot y"></span><span class="sonic-dot g"></span><span class="sonic-terminal-title"></span><button type="button" class="sonic-terminal-close" data-close>&times;</button></div><div class="sonic-terminal-body"></div></div>';
+            document.body.appendChild(m);
+            m.addEventListener('click', function (e) { if (e.target === m || e.target.hasAttribute('data-close')) m.classList.remove('active'); });
+        }
+        if (!escBound) { escBound = true; document.addEventListener('keydown', function (e) { if (e.key === 'Escape') $all('.sonic-modal.active').forEach(function (x) { x.classList.remove('active'); }); }); }
         m.querySelector('.sonic-terminal-title').textContent = id;
         m.querySelector('.sonic-terminal-body').innerHTML = html;
         m.classList.add('active'); return m;
     }
+
     function initZoom() { var b = $('#sonicZoomBtn'); if (!b) return; b.addEventListener('click', function () { modal('sonicZoomModal', '<div class="sonic-zoom-wrap"><img src="' + esc(b.getAttribute('data-large')) + '" alt="cover"></div>'); }); }
-    function initQr() { var b = $('#sonicQrBtn'); if (!b) return; b.addEventListener('click', function () { var url = b.getAttribute('data-url'); var img = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url); modal('sonicQrModal', '<div class="sonic-qr-wrap"><img src="' + img + '" alt="QR" onerror="this.style.display=\'none\'"><p class="sonic-qr-url">' + esc(url) + '</p><button type="button" class="sonic-mini-btn" id="sonicQrCopy"><i class="fas fa-link"></i> Salin URL</button></div>'); var c = $('#sonicQrCopy'); if (c) c.addEventListener('click', function () { copy(url); }); }); }
+
+    function initQr() {
+        var b = $('#sonicQrBtn'); if (!b) return;
+        b.addEventListener('click', function () {
+            var url = b.getAttribute('data-url') || window.location.href;
+            var html = null;
+            /* Hook QR lokal: aktif otomatis bila lib qrcode-generator (Batch 3) tersedia.
+               Sebelum itu, fallback persis perilaku lama (api.qrserver.com). */
+            if (typeof window.qrcode === 'function') {
+                try {
+                    var qr = window.qrcode(0, 'M'); qr.addData(url); qr.make();
+                    html = '<div class="sonic-qr-wrap"><div style="display:flex;justify-content:center;background:#fff;padding:10px;border-radius:10px;">' + qr.createSvgTag(4, 2) + '</div><p class="sonic-qr-url">' + esc(url) + '</p><button type="button" class="sonic-mini-btn" id="sonicQrCopy"><i class="fas fa-link"></i> Salin URL</button></div>';
+                } catch (e) { html = null; }
+            }
+            if (!html) {
+                var img = 'https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=' + encodeURIComponent(url);
+                html = '<div class="sonic-qr-wrap"><img src="' + img + '" alt="QR" onerror="this.style.display=\'none\'"><p class="sonic-qr-url">' + esc(url) + '</p><button type="button" class="sonic-mini-btn" id="sonicQrCopy"><i class="fas fa-link"></i> Salin URL</button></div>';
+            }
+            modal('sonicQrModal', html);
+            var c = $('#sonicQrCopy'); if (c) c.addEventListener('click', function () { copy(url); });
+        });
+    }
+
     function initCopyCall() { var b = $('#sonicCopyCall'); if (!b) return; b.addEventListener('click', function () { copy(b.getAttribute('data-call')); }); }
+
     function initReader() {
         $all('.sonic-attach-deck a').forEach(function (a) {
             var href = a.getAttribute('href') || ''; var txt = (a.textContent || '') + ' ' + href;
@@ -155,24 +194,46 @@
             a.parentNode.insertBefore(btn, a.nextSibling);
         });
     }
+
     function stars(n) { var s = ''; for (var i = 1; i <= 5; i++) s += '<i class="' + (i <= Math.round(n) ? 'fas' : 'far') + ' fa-star"></i>'; return s; }
+
     function initReviews() {
         var root = $('.sonic-detail-revolution'); if (!root) return;
         var id = root.getAttribute('data-biblio-id');
         var sum = $('#sonicRatingSummary'), list = $('#sonicReviewList');
         function load() {
-            fetch(base() + 'api/review.php?biblio_id=' + id).then(function (r) { return r.json(); }).then(function (d) {
-                if (sum) sum.innerHTML = '<span class="sonic-stars">' + stars(d.avg) + '</span> <b>' + d.avg + '</b> / 5 · ' + d.count + ' ulasan';
-                if (list) { list.innerHTML = d.items.length ? '' : '<p class="sonic-review-empty">Belum ada ulasan. Jadilah yang pertama!</p>';
-                    d.items.forEach(function (it) { var el = document.createElement('div'); el.className = 'sonic-review-item'; el.innerHTML = '<div class="sonic-review-head"><span class="sonic-stars">' + stars(it.rating) + '</span><strong>' + esc(it.member_name || 'Pemustaka') + '</strong><em>' + esc((it.created_at || '').slice(0, 10)) + '</em></div><p>' + esc(it.review) + '</p>'; list.appendChild(el); }); }
+            fetch(base() + 'api/review.php?biblio_id=' + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (d) {
+                var avg = Number(d.avg) || 0, count = Number(d.count) || 0;
+                if (sum) sum.innerHTML = '<span class="sonic-stars">' + stars(avg) + '</span> <b>' + avg + '</b> / 5 · ' + count + ' ulasan';
+                var items = Array.isArray(d.items) ? d.items : [];
+                if (list) {
+                    list.innerHTML = items.length ? '' : '<p class="sonic-review-empty">Belum ada ulasan. Jadilah yang pertama!</p>';
+                    items.forEach(function (it) { var el = document.createElement('div'); el.className = 'sonic-review-item'; el.innerHTML = '<div class="sonic-review-head"><span class="sonic-stars">' + stars(it.rating) + '</span><strong>' + esc(it.member_name || 'Pemustaka') + '</strong><em>' + esc((it.created_at || '').slice(0, 10)) + '</em></div><p>' + esc(it.review) + '</p>'; list.appendChild(el); });
+                }
             }).catch(function () {});
         }
         load();
         var starBox = $('#sonicReviewStars'), ratingInput = $('#sonicRatingInput');
-        if (starBox) starBox.addEventListener('click', function (e) { var b = e.target.closest('button[data-star]'); if (!b) return; var v = parseInt(b.getAttribute('data-star'), 10); ratingInput.value = v; $all('button', starBox).forEach(function (x) { var on = parseInt(x.getAttribute('data-star'), 10) <= v; x.innerHTML = '<i class="' + (on ? 'fas' : 'far') + ' fa-star"></i>'; }); });
+        function paintStars(v) { if (!starBox) return; $all('button', starBox).forEach(function (x) { var on = parseInt(x.getAttribute('data-star'), 10) <= v; x.innerHTML = '<i class="' + (on ? 'fas' : 'far') + ' fa-star"></i>'; }); }
+        if (starBox) starBox.addEventListener('click', function (e) { var b = e.target.closest('button[data-star]'); if (!b) return; var v = parseInt(b.getAttribute('data-star'), 10); if (ratingInput) ratingInput.value = v; paintStars(v); });
         var form = $('#sonicReviewForm');
-        if (form) form.addEventListener('submit', function (e) { e.preventDefault(); var fd = new FormData(form); fetch(base() + 'api/review.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) { toast(d.message || 'Tersimpan'); if (d.status) { form.reset(); load(); } }).catch(function () { toast('Gagal mengirim ulasan'); }); });
+        if (form) form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            var sb = form.querySelector('button[type="submit"],input[type="submit"]');
+            if (sb) sb.disabled = true;
+            var fd = new FormData(form);
+            fetch(base() + 'api/review.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
+                /* FIX F-2: Volnix me-rotasi token setelah validasi — sinkronkan token baru ke form */
+                if (d.new_token) {
+                    var t = form.querySelector('input[name="' + (d.token_name || '_csrf_token_645a83a41868941e4692aa31e7235f2') + '"]');
+                    if (t) t.value = d.new_token;
+                }
+                toast(d.message || 'Tersimpan');
+                if (d.status) { form.reset(); if (ratingInput) ratingInput.value = 5; paintStars(5); load(); }
+            }).catch(function () { toast('Gagal mengirim ulasan'); }).then(function () { if (sb) sb.disabled = false; });
+        });
     }
+
     function boot3() { initZoom(); initQr(); initCopyCall(); initReader(); initReviews(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot3); else boot3();
 })();

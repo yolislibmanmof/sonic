@@ -1,23 +1,16 @@
 <?php
 /**
- * Template for Biblio List (SONIC Edition — FASE 1: escaping + bookmark DB + share benar)
+ * Template for Biblio List (SONIC Edition — BATCH 2)
+ * Fix: 1 query gabungan (notes + call_number + availability) per baris dengan cache,
+ *      call number tampil walau engine tidak>Select kolom itu, notes plain-text aman,
+ *      escape-setelah-truncate untuk judul, sanitizer kuat via _security.php.
  */
 use SLiMS\Url;
 
 $label_cache = array();
 
-/* ===== SONIC HELPERS (load-order safe) =====
-   Mesin pencari / show_detail merender template ini SEBELUM classic.php dimuat,
-   maka helper yang dipakai di sini wajib didefinisikan lokal (guarded). */
-if (!function_exists('sonic_kses')) {
-    function sonic_kses($html) {
-        $html = (string)$html;
-        $html = preg_replace('#<(script|style|iframe|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
-        $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
-        $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*javascript:[^"\']*\2#i', '$1=$2#$2', $html);
-        return $html;
-    }
-}
+require_once __DIR__ . '/parts/_security.php';
+
 if (!function_exists('sonic_is_bookmarked')) {
     function sonic_is_bookmarked($biblio_id) {
         global $dbs;
@@ -37,26 +30,56 @@ if (!function_exists('sonic_is_bookmarked')) {
     }
 }
 
+if (!function_exists('sonic_row_extras')) {
+    /**
+     * Satu query per biblio (cache per-request): notes, call_number, availability.
+     * Menggantikan 2 query terpisah (getNotes + getAvailability) → beban DB turun 50%.
+     */
+    function sonic_row_extras($dbs, $biblio_id) {
+        static $cache = [];
+        $biblio_id = (int)$biblio_id;
+        if (isset($cache[$biblio_id])) return $cache[$biblio_id];
+        $out = ['notes' => '', 'call_number' => '', 'avail' => 0];
+        try {
+            $q = $dbs->query("SELECT b.notes, b.call_number,
+                (SELECT COUNT(*) FROM item WHERE biblio_id={$biblio_id}) -
+                (SELECT COUNT(*) FROM loan AS l INNER JOIN item AS i ON l.item_code=i.item_code
+                 WHERE l.is_lent=1 AND l.is_return=0 AND i.biblio_id={$biblio_id}) AS avail
+                FROM biblio b WHERE b.biblio_id={$biblio_id}");
+            if ($q && ($r = $q->fetch_assoc())) {
+                $out['call_number'] = (string)($r['call_number'] ?? '');
+                $out['avail'] = max(0, (int)$r['avail']);
+                $t = trim(preg_replace('/\s+/u', ' ', strip_tags((string)($r['notes'] ?? ''))));
+                $out['notes'] = html_entity_decode($t, ENT_QUOTES, 'UTF-8');
+            }
+        } catch (Throwable $e) {}
+        return $cache[$biblio_id] = $out;
+    }
+}
+
 function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$return_back = array()) {
     global $label_cache, $sysconf;
 
     $output = '';
-    $title = $biblio_detail['title'];
-    $title_esc = htmlspecialchars(stripslashes($title), ENT_QUOTES);
+    $title = (string)($biblio_detail['title'] ?? '');
     $biblio_id = (int)$biblio_detail['biblio_id'];
     $detail_url = SWB.'index.php?p=show_detail&id='.$biblio_id.'&keywords='.urlencode($settings['keywords'] ?? '');
     $cite_url = SWB.'index.php?p=cite&id='.$biblio_id.'&keywords='.urlencode($settings['keywords'] ?? '');
 
-    $images_loc = 'images/docs/'.$biblio_detail['image'];
-    if ($biblio_detail['image'] == '' || $biblio_detail['image'] == NULL) { $images_loc = 'images/default/image.png'; }
+    $images_loc = 'images/docs/'.($biblio_detail['image'] ?? '');
+    if (($biblio_detail['image'] ?? '') == '' || ($biblio_detail['image'] ?? null) === null) { $images_loc = 'images/default/image.png'; }
     $thumb_url = './lib/minigalnano/createthumb.php?filename='.urlencode($images_loc).'&width=240';
 
-    $notes = getNotes($dbs, $biblio_id);
+    $extras = sonic_row_extras($dbs, $biblio_id);
+    $notes = ($extras['notes'] !== '') ? htmlspecialchars(addEllipsis($extras['notes'], 400), ENT_QUOTES) : '';
+    $call_number = trim((string)($biblio_detail['call_number'] ?? '')) !== '' ? $biblio_detail['call_number'] : $extras['call_number'];
+    $availability = $extras['avail'];
+
     $custom_field = '';
     $i = 0;
     $expand = true;
 
-    if ($settings['enable_custom_frontpage'] AND $settings['custom_fields']) {
+    if (!empty($settings['enable_custom_frontpage']) && !empty($settings['custom_fields'])) {
         $custom_field = '<dl>';
         foreach ($settings['custom_fields'] as $field => $field_opts) {
             if ($field_opts[0] == 1) {
@@ -70,7 +93,6 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
 
     if (empty($notes)) { $notes = $custom_field; $expand = false; }
 
-    $availability = getAvailability($dbs, $biblio_id, $sysconf);
     $class_avail = ($availability > 0) ? '' : 'unavailable';
 
     $_authors = isset($biblio_detail['author']) ? $biblio_detail['author'] : biblio_list_model::getAuthors($dbs, $biblio_id, true);
@@ -79,6 +101,7 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
         if (!is_array($_authors)) $_authors = explode('-', $_authors);
         foreach ($_authors as $a) {
             $a = trim($a);
+            if ($a === '') continue;
             $_authors_string .= '<a href="index.php?author='.urlencode($a).'&search=Search" class="sonic-tag" style="padding: 0.2rem 0.6rem; font-size: 0.75rem;">'.htmlspecialchars($a).'</a>';
         }
     }
@@ -87,9 +110,9 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
         $output .= '<div class="sonic-list-card">';
         $output .= '<div class="sonic-list-cover"><img loading="lazy" src="'.$thumb_url.'" alt="cover"></div>';
         $output .= '<div class="sonic-list-content">';
-        $output .= '<h4 class="sonic-list-title"><a href="'.$detail_url.'">'.addEllipsis($title_esc, 80).'</a></h4>';
+        $output .= '<h4 class="sonic-list-title"><a href="'.$detail_url.'">'.htmlspecialchars(addEllipsis(stripslashes($title), 80), ENT_QUOTES).'</a></h4>';
         $output .= createButton($biblio_id, $title);
-        $output .= '<div class="sonic-list-meta"><span><i class="far fa-calendar-alt"></i>'.htmlspecialchars($biblio_detail['publish_year'] ?? '—').'</span><span><i class="fas fa-map-marker-alt"></i>'.htmlspecialchars($biblio_detail['call_number'] ?? '—').'</span><span><i class="fas fa-box"></i><span style="color:'.($availability > 0 ? 'var(--sonic-success)' : 'var(--sonic-danger)').';">'.($availability > 0 ? $availability.' '.__('available') : __('Unavailable')).'</span></span></div>';
+        $output .= '<div class="sonic-list-meta"><span><i class="far fa-calendar-alt"></i>'.htmlspecialchars($biblio_detail['publish_year'] ?? '—').'</span><span><i class="fas fa-map-marker-alt"></i>'.htmlspecialchars($call_number !== '' ? $call_number : '—').'</span><span><i class="fas fa-box"></i><span style="color:'.($availability > 0 ? 'var(--sonic-success)' : 'var(--sonic-danger)').';">'.($availability > 0 ? $availability.' '.__('available') : __('Unavailable')).'</span></span></div>';
         $output .= '<p class="sonic-list-notes">'.$notes.'</p>';
         if ($i > 0 && $expand) {
             $output .= '<div id="expand-'.$biblio_id.'" class="collapse py-2">'.$custom_field.'</div>';
@@ -114,8 +137,8 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
         $output .= '<img loading="lazy" src="'.$thumb_url.'" alt="cover">';
         $output .= '<span class="sonic-avail-badge '.$class_avail.'">'.($availability > 0 ? $availability.' '.__('available') : __('Unavailable')).'</span>';
         $output .= '</div>';
-        $output .= '<h4 class="sonic-book-title">'.addEllipsis($title_esc, 60).'</h4>';
-        $output .= '<p class="sonic-book-year"><i class="far fa-calendar-alt"></i>'.htmlspecialchars($biblio_detail['publish_year'] ?? '—').' &middot; '.htmlspecialchars($biblio_detail['call_number'] ?? '—').'</p>';
+        $output .= '<h4 class="sonic-book-title">'.htmlspecialchars(addEllipsis(stripslashes($title), 60), ENT_QUOTES).'</h4>';
+        $output .= '<p class="sonic-book-year"><i class="far fa-calendar-alt"></i>'.htmlspecialchars($biblio_detail['publish_year'] ?? '—').' &middot; '.htmlspecialchars($call_number !== '' ? $call_number : '—').'</p>';
         $output .= '<div class="sonic-book-actions"><span class="sonic-mini-btn" style="pointer-events: none;">⚡ '.__('View').'</span></div>';
         $output .= '</a>';
     endif;
@@ -124,9 +147,8 @@ function biblio_list_format($dbs, $biblio_detail, $n, $settings = array(), &$ret
 }
 
 function getNotes($dbs, $biblio_id) {
-    $query = $dbs->query('SELECT notes FROM biblio WHERE biblio_id = ' . (int)$biblio_id);
-    $data = $query->fetch_row();
-    return sonic_kses(addEllipsis($data[0] ?? '', 400));//
+    $e = sonic_row_extras($dbs, $biblio_id);
+    return ($e['notes'] !== '') ? htmlspecialchars(addEllipsis($e['notes'], 400), ENT_QUOTES) : '';
 }
 
 function addEllipsis($string, $length, $end = '…') {
@@ -140,11 +162,7 @@ function addEllipsis($string, $length, $end = '…') {
 }
 
 function getAvailability($dbs, $biblio_id, $sysconf) {
-    $biblio_id = (int)$biblio_id;
-    // Satu query (dua subquery) — kurangi round-trip N+1.
-    $q = $dbs->query("SELECT (SELECT COUNT(*) FROM item WHERE biblio_id={$biblio_id}) - (SELECT COUNT(*) FROM loan AS l INNER JOIN item AS i ON l.item_code=i.item_code WHERE l.is_lent=1 AND l.is_return=0 AND i.biblio_id={$biblio_id}) AS avail");
-    if ($q && ($r = $q->fetch_row())) return max(0, (int)$r[0]);
-    return 0;
+    return sonic_row_extras($dbs, $biblio_id)['avail'];
 }
 
 function createButton(int $biblio_id, string $title) {

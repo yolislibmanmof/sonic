@@ -4,24 +4,28 @@ $sonic_compact_hero = true;
 include '_navbar.php';
 include '_search-form.php';
 
-/* ===== Normalisasi state pencarian (filter JSON + legacy GET) ===== */
+/* SONIC PATCH F-3: baca input ASLI via filter_input — $_GET sudah di-strip quote oleh core (quoteFree) */
+$sonic_raw = function ($k) { $v = filter_input(INPUT_GET, $k, FILTER_UNSAFE_RAW); return is_string($v) ? trim(strip_tags($v)) : ''; };
 $sonic_filter = [];
-if (!empty($_GET['filter']) && is_string($_GET['filter'])) {
-    $dec = json_decode($_GET['filter'], true);
-    if (is_array($dec)) $sonic_filter = $dec;
-}
+$_rf = $sonic_raw('filter');
+if ($_rf !== '') { $dec = json_decode($_rf, true); if (is_array($dec)) $sonic_filter = $dec; }
 $sonic_state = [
-    'keywords'    => (string)($_GET['keywords'] ?? ''),
-    'title'       => (string)($sonic_filter['title']       ?? ($_GET['title'] ?? '')),
-    'author'      => (string)($sonic_filter['author']      ?? ($_GET['author'] ?? '')),
-    'subject'     => (string)($sonic_filter['subject']     ?? ($_GET['subject'] ?? '')),
-    'isbn'        => (string)($sonic_filter['isbn']        ?? ($_GET['isbn'] ?? '')),
-    'callnumber'  => (string)($sonic_filter['callnumber']  ?? ($_GET['callnumber'] ?? '')),
-    'publishyear' => (string)($sonic_filter['publishyear'] ?? ($_GET['publishyear'] ?? '')),
+    'keywords'    => $sonic_raw('keywords'),
+    'title'       => (string)($sonic_filter['title']       ?? $sonic_raw('title')),
+    'author'      => (string)($sonic_filter['author']      ?? $sonic_raw('author')),
+    'subject'     => (string)($sonic_filter['subject']     ?? $sonic_raw('subject')),
+    'isbn'        => (string)($sonic_filter['isbn']        ?? $sonic_raw('isbn')),
+    'callnumber'  => (string)($sonic_filter['callnumber']  ?? $sonic_raw('callnumber')),
+    'publishyear' => (string)($sonic_filter['publishyear'] ?? $sonic_raw('publishyear')),
     'sort'        => (string)($sonic_filter['sort']        ?? ''),
 ];
 foreach (['gmd', 'location', 'colltype'] as $mk) {
-    $v = $sonic_filter[$mk] ?? ($_GET[$mk] ?? []);
+    $v = $sonic_filter[$mk] ?? null;
+    if ($v === null) {
+        $arr = filter_input(INPUT_GET, $mk, FILTER_UNSAFE_RAW, FILTER_REQUIRE_ARRAY);
+        $one = $sonic_raw($mk);
+        $v = is_array($arr) ? $arr : ($one !== '' ? [$one] : []);
+    }
     if (is_string($v)) $v = ($v === '' || $v === '0') ? [] : [$v];
     if (!is_array($v)) $v = [$v];
     $sonic_state[$mk] = array_values(array_filter(array_map('strval', $v), fn($x) => $x !== '' && $x !== '0'));

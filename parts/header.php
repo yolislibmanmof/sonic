@@ -1,10 +1,23 @@
 <?php
-# @Filename: header.php (SONIC v3 — Vendor Rescue)
-$request_uri = urlencode(strip_tags(urldecode($_SERVER['REQUEST_URI'])));
+# @Filename: header.php (SONIC — BATCH 1: escaping meta, header keamanan, cache waras, bundle-ready)
+if (!headers_sent()) {
+    header('X-Content-Type-Options: nosniff');
+    header('X-Frame-Options: SAMEORIGIN');
+    header('Referrer-Policy: strict-origin-when-cross-origin');
+    // private+no-cache (bukan no-store) agar back/forward cache hidup → navigasi lebih smooth
+    header('Cache-Control: private, no-cache, must-revalidate');
+}
+$sonic_host = sonic_host();
+$sonic_scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+$sonic_req_uri = htmlspecialchars($_SERVER['REQUEST_URI'] ?? '', ENT_QUOTES);
+$sonic_pt = htmlspecialchars($page_title ?? '', ENT_QUOTES);
+$sonic_lib = htmlspecialchars($sysconf['library_name'] ?? '', ENT_QUOTES);
+$sonic_sub = htmlspecialchars($sysconf['library_subname'] ?? '', ENT_QUOTES);
+$sonic_img_src = htmlspecialchars(htmlspecialchars_decode($image_src ?? '', ENT_QUOTES), ENT_QUOTES);
+$sonic_notes_meta = htmlspecialchars(mb_substr(strip_tags($notes ?? ''), 0, 152), ENT_QUOTES);
 
 /**
- * SONIC VENDOR FALLBACK
- * Jika file vendor tidak ada di sonic/assets, otomatis pakai milik template lain (default).
+ * SONIC VENDOR FALLBACK — pinjam aset vendor dari template lain bila tidak ada di sonic.
  */
 if (!function_exists('sonic_vendor')) {
     function sonic_vendor($path = '') {
@@ -27,45 +40,41 @@ if (!function_exists('sonic_vendor')) {
 <html lang="<?= htmlspecialchars(substr($sysconf['default_lang'] ?? 'en', 0, 2)) ?>">
 <head>
     <meta charset="utf-8">
-    <title><?php echo $page_title; ?> | SONIC OPAC</title>
+    <title><?php echo $sonic_pt; ?> | SONIC OPAC</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
-    <meta http-equiv="Pragma" content="no-cache"/>
-    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate, post-check=0, pre-check=0"/>
-    <meta http-equiv="Expires" content="Sat, 26 Jul 1997 05:00:00 GMT"/>
     <?php echo $metadata; ?>
 
     <?php if (isset($_GET['p']) && ($_GET['p'] == 'show_detail')): ?>
-        <meta name="description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($notes ?? ''), 0, 152)) . '...'; ?>">
-        <meta name="keywords" content="<?php echo $subject; ?>">
+        <meta name="description" content="<?php echo $sonic_notes_meta; ?>...">
+        <meta name="keywords" content="<?php echo htmlspecialchars($subject ?? '', ENT_QUOTES); ?>">
     <?php else: ?>
-        <meta name="description" content="<?php echo $page_title; ?>">
-        <meta name="keywords" content="<?php echo $sysconf['library_subname']; ?>">
+        <meta name="description" content="<?php echo $sonic_pt; ?>">
+        <meta name="keywords" content="<?php echo $sonic_sub; ?>">
     <?php endif; ?>
 
     <meta name="generator" content="<?php echo SENAYAN_VERSION ?>">
     <meta name="theme-color" content="#00f0ff">
-    <meta property="og:locale" content="<?php echo str_replace('-', '_', $sysconf['default_lang']); ?>"/>
+    <meta property="og:locale" content="<?php echo htmlspecialchars(str_replace('-', '_', $sysconf['default_lang'] ?? 'en')); ?>"/>
     <meta property="og:type" content="book"/>
-    <meta property="og:title" content="<?php echo $page_title; ?>"/>
+    <meta property="og:title" content="<?php echo $sonic_pt; ?>"/>
     <?php if (isset($_GET['p']) && ($_GET['p'] == 'show_detail')): ?>
-        <meta property="og:description" content="<?php echo htmlspecialchars(mb_substr(strip_tags($notes ?? ''), 0, 152)) . '...'; ?>"/>
-        <meta property="og:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $image_src ?>"/>
+        <meta property="og:description" content="<?php echo $sonic_notes_meta; ?>..."/>
+        <meta property="og:image" content="//<?php echo $sonic_host . SWB . $sonic_img_src ?>"/>
     <?php else: ?>
-        <meta property="og:description" content="<?php echo $sysconf['library_subname']; ?>"/>
-        <meta property="og:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $sysconf['template']['dir']; ?>/sonic/assets/images/logo-big.png"/>
+        <meta property="og:description" content="<?php echo $sonic_sub; ?>"/>
+        <meta property="og:image" content="//<?php echo $sonic_host . SWB . CURRENT_TEMPLATE_DIR ?>assets/images/logo-big.png"/>
     <?php endif; ?>
-    <meta property="og:url" content="//<?php echo $_SERVER["SERVER_NAME"] . $request_uri; ?>"/>
-    <meta property="og:site_name" content="<?php echo $sysconf['library_name']; ?>"/>
+    <meta property="og:url" content="//<?php echo $sonic_host . $sonic_req_uri; ?>"/>
+    <meta property="og:site_name" content="<?php echo $sonic_lib; ?>"/>
     <meta name="twitter:card" content="summary_large_image">
     <?php if (isset($_GET['p']) && ($_GET['p'] == 'show_detail')): ?>
-    <meta name="twitter:image" content="//<?php echo $_SERVER["SERVER_NAME"] . SWB . $image_src ?>"/>
+    <meta name="twitter:image" content="//<?php echo $sonic_host . SWB . $sonic_img_src ?>"/>
     <meta property="og:image:width" content="600"/>
     <meta property="og:image:height" content="800"/>
     <?php endif; ?>
-    <meta name="twitter:url" content="//<?php echo $_SERVER["SERVER_NAME"] . $request_uri; ?>"/>
-    <meta name="twitter:title" content="<?php echo $page_title; ?>"/>
+    <meta name="twitter:url" content="//<?php echo $sonic_host . $sonic_req_uri; ?>"/>
+    <meta name="twitter:title" content="<?php echo $sonic_pt; ?>"/>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -74,20 +83,25 @@ if (!function_exists('sonic_vendor')) {
 
     <!-- Vendor CSS (FALLBACK AMAN) -->
     <link rel="stylesheet" href="<?php echo sonic_vendor('css/bootstrap.min.css'); ?>">
-    <link rel="stylesheet" href="<?php echo sonic_vendor('plugin/font-awesome/css/fontawesome-all.min.css'); ?>">
+    <?php $sonic_fa = is_file(__DIR__ . '/../assets/plugin/font-awesome-5.15.4/css/all.min.css') ? 'plugin/font-awesome-5.15.4/css/all.min.css' : 'plugin/font-awesome/css/fontawesome-all.min.css'; ?>
+    <link rel="stylesheet" href="<?php echo sonic_vendor($sonic_fa); ?>">
     <link rel="stylesheet" href="<?php echo sonic_vendor('css/tailwind.min.css'); ?>">
     <link rel="stylesheet" href="<?php echo sonic_vendor('css/flag-icon.min.css'); ?>">
 
-    <!-- SLiMS core CSS -->
-    <link href="<?php echo JWB; ?>toastr/toastr.min.css?<?php echo date('this') ?>" rel="stylesheet" type="text/css"/>
+    <!-- SLiMS core CSS (FIX: versi stabil, bukan date('this')) -->
+    <link href="<?php echo JWB; ?>toastr/toastr.min.css?v=<?php echo SENAYAN_VERSION_TAG ?>" rel="stylesheet" type="text/css"/>
     <link rel="stylesheet" href="<?= JWB; ?>ckeditor5/ckeditor5.css">
     <link rel="stylesheet" href="<?= JWB; ?>colorbox/colorbox.css">
     <link rel="stylesheet" href="<?= JWB; ?>ion.rangeSlider/css/ion.rangeSlider.min.css">
 
-    <!-- SONIC THEME (modular, versi cache-bust) -->
+    <!-- SONIC THEME: bundle bila ada (Batch 2), fallback modular -->
     <?php
-    foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash'] as $scf) {
-        echo '<link rel="stylesheet" href="' . assets('css/' . $scf . '.css') . '?v=' . sonic_asset_ver('css/' . $scf . '.css') . '">' . "\n";
+    if (is_file(__DIR__ . '/../assets/css/sonic.bundle.css')) {
+        echo '<link rel="stylesheet" href="' . assets('css/sonic.bundle.css') . '?v=' . sonic_asset_ver('css/sonic.bundle.css') . '">' . "\n";
+    } else {
+        foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash','sonic-premium'] as $scf) {
+            echo '<link rel="stylesheet" href="' . assets('css/' . $scf . '.css') . '?v=' . sonic_asset_ver('css/' . $scf . '.css') . '">' . "\n";
+        }
     }
     ?>
 
@@ -97,17 +111,19 @@ if (!function_exists('sonic_vendor')) {
         $icon = SWB . 'lib/minigalnano/createthumb.php?filename=images/' . $path . '&width=130';
     }
     ?>
-    <link rel="shortcut icon" href="<?php echo $icon ?>" type="image/x-icon"/>
+    <link rel="shortcut icon" href="<?php echo htmlspecialchars($icon, ENT_QUOTES) ?>" type="image/x-icon"/>
 
-    <!-- Vendor JS (jquery dulu) -->
+    <!-- Vendor JS (jquery dulu; bootstrap defer) -->
     <script src="<?php echo sonic_vendor('js/jquery.min.js'); ?>"></script>
-    <script src="<?php echo sonic_vendor('js/bootstrap.bundle.min.js'); ?>"></script>
+    <script defer src="<?php echo sonic_vendor('js/bootstrap.bundle.min.js'); ?>"></script>
     <script>
     window.SONIC_CFG = <?php echo json_encode([
         'particle' => (string)($sysconf['template']['sonic_particle'] ?? 'books'),
         'walker'   => (string)($sysconf['template']['sonic_walker'] ?? 'person'),
         'lang'     => substr($sysconf['default_lang'] ?? 'en', 0, 2),
-    ], JSON_UNESCAPED_UNICODE); ?>;
+        'base'     => CURRENT_TEMPLATE_DIR,
+        'logged'   => !empty($is_login),
+    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
     </script>
 
     <!-- SLiMS core JS -->
@@ -115,7 +131,7 @@ if (!function_exists('sonic_vendor')) {
     <script src="<?php echo JWB; ?>colorbox/jquery.colorbox-min.js"></script>
     <script src="<?php echo JWB . v('gui.js'); ?>"></script>
     <script src="<?php echo JWB; ?>fancywebsocket.js"></script>
-    <script src="<?php echo JWB; ?>ion.rangeSlider/js/ion.rangeSlider.min.js"></script>
+    <script defer src="<?php echo JWB; ?>ion.rangeSlider/js/ion.rangeSlider.min.js"></script>
 
     <?php if (isset($js)) echo $js; ?>
 </head>
@@ -127,3 +143,7 @@ if (!function_exists('sonic_vendor')) {
     <div class="sonic-boot-text">SONIC</div>
     <div class="sonic-boot-bar"><span></span></div>
 </div>
+<script>
+/* FIX flash boot: buang overlay SEGERA bila sesi ini sudah pernah boot */
+(function(){try{if(sessionStorage.getItem('sonicBooted')){var b=document.getElementById('sonicBoot');if(b&&b.parentNode)b.parentNode.removeChild(b);}}catch(e){}})();
+</script>

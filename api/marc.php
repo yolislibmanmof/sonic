@@ -1,19 +1,25 @@
 <?php
 /**
- * SONIC OPAC — MARC21 (ISO 2709) exporter mandiri.
- * Menggantikan endpoint core yang 500 di PHP 8. Read-only, output application/marc.
+ * SONIC OPAC — MARC21 (ISO 2709) exporter mandiri (BATCH 2).
+ * Read-only, output application/marc. Leader/directory terverifikasi benar.
+ * Tambahan: guard tanggal, 041 bahasa, 520 abstrak, 856 URL lampiran eksternal.
  */
 define('INDEX_AUTH', '1');
 require_once '../../../sysconfig.inc.php';
 
 header('Content-Type: application/marc; charset=utf-8');
 header('Cache-Control: no-store');
+header('X-Content-Type-Options: nosniff');
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($id <= 0 || !isset($dbs) || !is_object($dbs)) { http_response_code(400); exit('bad id'); }
 
 $FT = chr(30); $RT = chr(29); $SF = chr(31);
-$clean = function ($s) { return str_replace([chr(29), chr(30), chr(31)], '', (string)$s); };
+$clean = function ($s) {
+    $s = (string)$s;
+    $s = str_replace([chr(29), chr(30), chr(31)], '', $s);
+    return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $s);
+};
 
 /* ---- Ambil data ---- */
 $b = null;
@@ -23,7 +29,7 @@ try {
 } catch (Throwable $e) {}
 if (!$b) { http_response_code(404); exit('not found'); }
 
-$authors = []; $topics = []; $locs = [];
+$authors = []; $topics = []; $locs = []; $urls = [];
 try {
     $q = $dbs->query('SELECT a.author_name FROM biblio_author ba JOIN mst_author a ON ba.author_id=a.author_id WHERE ba.biblio_id=' . $id . ' ORDER BY ba.level ASC');
     if ($q) while ($r = $q->fetch_row()) $authors[] = $r[0];
@@ -31,6 +37,8 @@ try {
     if ($q) while ($r = $q->fetch_row()) $topics[] = $r[0];
     $q = $dbs->query('SELECT l.location_name FROM item i JOIN mst_location l ON i.location_id=l.location_id WHERE i.biblio_id=' . $id . ' LIMIT 3');
     if ($q) while ($r = $q->fetch_row()) $locs[] = $r[0];
+    $q = $dbs->query('SELECT file_title, file_url FROM biblio_attachment WHERE biblio_id=' . $id . ' LIMIT 3');
+    if ($q) while ($r = $q->fetch_assoc()) { if (trim((string)$r['file_url']) !== '') $urls[] = $r; }
 } catch (Throwable $e) {}
 
 /* ---- Builder field ---- */
@@ -44,16 +52,19 @@ $fld = function ($tag, $i1, $i2, $subs) use (&$fields, $FT, $SF, $clean) {
 
 $year = substr(preg_replace('/\D/', '', $b['publish_year'] ?? ''), 0, 4);
 $year = str_pad($year, 4, ' ');
-$entered = !empty($b['input_date']) ? date('ymd', strtotime($b['input_date'])) : date('ymd');
+$tsIn = !empty($b['input_date']) ? strtotime($b['input_date']) : false;
+$entered = $tsIn ? date('ymd', $tsIn) : date('ymd');
 $lang = substr(preg_replace('/[^a-z]/', '', strtolower($b['language'] ?? '')), 0, 3);
 $lang = str_pad($lang ?: '   ', 3, ' ');
-$upd = !empty($b['last_update']) ? date('YmdHis', strtotime($b['last_update'])) . '.0' : date('YmdHis') . '.0';
+$tsUp = !empty($b['last_update']) ? strtotime($b['last_update']) : false;
+$upd = ($tsUp ? date('YmdHis', $tsUp) : date('YmdHis')) . '.0';
 
 $ctl('001', (string)$id);
 $ctl('003', 'SLiMS');
 $ctl('005', $upd);
 $ctl('008', $entered . 's' . $year . '    xx ' . str_repeat('|', 17) . $lang . '||');
 if (!empty($b['isbn_issn'])) $fld('020', ' ', ' ', [['a', $b['isbn_issn']]]);
+if (trim($lang) !== '') $fld('041', ' ', ' ', [['a', trim($lang)]]);
 $fld('040', ' ', ' ', [['a', 'SLiMS'], ['c', 'SLiMS']]);
 if (!empty($b['call_number'])) $fld('082', '0', '4', [['a', $b['call_number']]]);
 if (!empty($authors[0])) $fld('100', '1', ' ', [['a', $authors[0]]]);
@@ -62,9 +73,11 @@ if (!empty($b['edition'])) $fld('250', ' ', ' ', [['a', $b['edition']]]);
 $fld('260', ' ', ' ', [['a', $b['publish_place'] ?? ''], ['b', $b['publisher_name'] ?? ''], ['c', $year]]);
 if (!empty($b['collation'])) $fld('300', ' ', ' ', [['a', $b['collation']]]);
 if (!empty($b['series_title'])) $fld('490', '0', ' ', [['a', $b['series_title']]]);
+if (!empty($b['notes'])) $fld('520', ' ', ' ', [['a', mb_substr(trim(strip_tags($b['notes'])), 0, 1500)]]);
 foreach ($topics as $t) $fld('650', ' ', '4', [['a', $t]]);
 for ($i = 1; $i < count($authors); $i++) $fld('700', '1', ' ', [['a', $authors[$i]]]);
 foreach ($locs as $l) $fld('852', ' ', ' ', [['a', $l], ['j', $b['call_number'] ?? '']]);
+foreach ($urls as $u) $fld('856', '4', ' ', [['u', $u['file_url']], ['y', $u['file_title'] ?? '']]);
 
 /* ---- Rakit ISO 2709 ---- */
 $dir = ''; $data = ''; $offset = 0;

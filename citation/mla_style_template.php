@@ -1,56 +1,56 @@
 <?php
-$author_list = [];
-$authors_string = '';
-foreach ($authors as $order => $data) {
-    $chunk_name = explode(' ', $data['author_name']);
-    $last_chunkname_order = array_key_last($chunk_name);
-    $last_name = $chunk_name[$last_chunkname_order];
-    $first_name = $chunk_name[0] ?? '';
-    if (!str_ends_with(trim($first_name), ',')) {
-        unset($chunk_name[$last_chunkname_order]);
-        if ($order > 0 & count($authors) > 2) continue;
-        $author_list[] = $last_name . ', ' . implode(', ', array_map(fn($name) => ucfirst($name) . '.', $chunk_name));
+/**
+ * MLA Style citation (SONIC Terminal — BATCH 2)
+ * Fix: nama depan penuh (bukan inisial bertitik), &&, escaping, path rename-safe.
+ */
+$sonic_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES); };
+$sonic_src = (isset($authors) && is_array($authors)) ? $authors : [];
+$sonic_total = count($sonic_src);
+$sonic_list = [];
+foreach ($sonic_src as $sonic_order => $sonic_data) {
+    $sonic_name = trim(is_array($sonic_data) ? ($sonic_data['author_name'] ?? '') : (string)$sonic_data);
+    if ($sonic_name === '') continue;
+    if ($sonic_order > 0 && $sonic_total > 2) continue;
+    $sonic_chunk = explode(' ', $sonic_name);
+    $sonic_li = array_key_last($sonic_chunk);
+    $sonic_last = $sonic_chunk[$sonic_li];
+    $sonic_first = $sonic_chunk[0] ?? '';
+    if (substr(trim($sonic_first), -1) === ',') {
+        unset($sonic_chunk[0]);
+        $sonic_list[] = $sonic_first . ' ' . implode(' ', array_map('ucfirst', $sonic_chunk));
     } else {
-        if ($order > 0 & count($authors) > 2) continue;
-        unset($chunk_name[0]);
-        $author_list[] = $first_name . ' ' . implode(', ', array_map(fn($name) => ucfirst($name) . '.', $chunk_name));
+        unset($sonic_chunk[$sonic_li]);
+        $sonic_list[] = $sonic_last . ', ' . implode(' ', array_map('ucfirst', $sonic_chunk));
     }
 }
-$authors_string = implode(', ', $author_list) . (count($authors) > 2 ? ' et al.' : '');
+$authors_string = implode(', ', $sonic_list) . ($sonic_total > 2 ? ' et al.' : '');
+$sonic_css = SWB . ($GLOBALS['sysconf']['template']['dir'] ?? 'template') . '/' . basename(dirname(__DIR__)) . '/assets/css/';
+$sonic_gmd = (($gmd_name ?? '') == 'Text') ? 'Print' : ($gmd_name ?? '');
 ?>
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Citation - MLA</title>
-    <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-base.css">
-    <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-modal.css">
-    <style>body { padding: 2rem; }</style>
-</head>
-<body class="sonic-theme">
+<link rel="stylesheet" href="<?= $sonic_css ?>sonic-base.css">
+<link rel="stylesheet" href="<?= $sonic_css ?>sonic-modal.css">
+<div class="sonic-theme" style="padding:1rem;">
 <div class="sonic-terminal" style="max-width: 700px; margin: 0 auto;">
     <div class="sonic-terminal-head">
-        <span class="sonic-dot r"></span>
-        <span class="sonic-dot y"></span>
-        <span class="sonic-dot g"></span>
+        <span class="sonic-dot r"></span><span class="sonic-dot y"></span><span class="sonic-dot g"></span>
         <span class="sonic-terminal-title">mla_citation.exe</span>
     </div>
     <div class="sonic-terminal-body">
         <h3>MLA Style Citation</h3>
         <p class="citation">
-            <?php if ($authors_string): ?>
-                <span class="authors"><?= $authors_string ?></span>
-                <span class="title">"<?= $title ?>".</span>
-                <span class="edition"><em><?= $edition ?></em></span>
+            <?php if ($authors_string !== ''): ?>
+                <span class="authors"><?= $sonic_e($authors_string) ?></span>
+                <span class="title">"<?= $sonic_e($title ?? '') ?>".</span>
+                <?php if (!empty($edition)): ?><span class="edition"><em><?= $sonic_e($edition) ?></em>,</span><?php endif; ?>
             <?php else: ?>
-                <span class="title"><em><?= $title ?></em>.</span>
-                <span class="edition"><?= $edition ?>.</span>
+                <span class="title"><em><?= $sonic_e($title ?? '') ?></em>.</span>
+                <?php if (!empty($edition)): ?><span class="edition"><?= $sonic_e($edition) ?>,</span><?php endif; ?>
             <?php endif; ?>
-            <span class="publish_place"><?= $publish_place ?>:</span>
-            <span class="publisher"><?= $publisher_name ?>,</span>
-            <span class="year"><?= $publish_year ?>.</span>
-            <span class="gmd_name"><?= $gmd_name ?>.</span>
+            <span class="publish_place"><?= $sonic_e($publish_place ?? '') ?>:</span>
+            <span class="publisher"><?= $sonic_e($publisher_name ?? '') ?>,</span>
+            <span class="year"><?= $sonic_e($publish_year ?? '') ?>.</span>
+            <span class="gmd_name"><?= $sonic_e($sonic_gmd) ?>.</span>
         </p>
     </div>
 </div>
-</body>
-</html>
+</div>

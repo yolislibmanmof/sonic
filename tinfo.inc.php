@@ -17,7 +17,7 @@ $sysconf['index']['type'] = array(
 );
 
 $sysconf['template']['base'] = 'php';
-$sysconf['template']['theme'] = 'sonic';
+$sysconf['template']['theme'] = basename(__DIR__);
 
 /* ===== DEFAULTS (guarded: nilai dari Kustomisasi/DB selalu menang) ===== */
 $sonic_defaults = [
@@ -31,7 +31,7 @@ $sonic_defaults = [
     'sonic_popular_collection' => 1,
     'sonic_new_collection' => 1,
     'sonic_top_reader' => 1,
-    'sonic_map' => false,
+    'sonic_map' => 1,
     'sonic_map_link' => '',
     'sonic_map_desc' => '',
     'sonic_fb_link' => '',
@@ -44,6 +44,10 @@ $sonic_defaults = [
     'sonic_library_subname' => 'Hyperdrive Library System',
     'sonic_popular_collection_limit' => 10,
     'sonic_new_collection_limit' => 10,
+    'sonic_trending_collection' => 1,
+    'sonic_trending_collection_limit' => 10,
+    'sonic_top_visitor' => 1,
+    'sonic_top_visitor_limit' => 6,
     'sonic_extra_menus' => '',
     'sonic_extra_menu_label' => 'Lainnya',
 ];
@@ -56,7 +60,7 @@ $sysconf['template']['sonic_kiosk_idle'] = $sysconf['template']['sonic_kiosk_idl
 $sysconf['template']['sonic_kiosk_quotes'] = $sysconf['template']['sonic_kiosk_quotes'] ?? '';
 
 /* ===== SLiMS CUSTOMIZER SCHEMA (wajib agar tombol Kustomisasi hidup) ===== */
-$sysconf['template']['option']['sonic'] = [
+$sysconf['template']['option'][basename(__DIR__)] = [
     'pvision' => ['dbfield'=>'sonic_profile_vision','label'=>'Profile: Vision','type'=>'longtext','default'=>'','width'=>90,'max'=>600],
     'pmission'=> ['dbfield'=>'sonic_profile_mission','label'=>'Profile: Mission — separate each point with || or number them (1. 2. 3.)','type'=>'longtext','default'=>'','width'=>90,'max'=>1000],
     'pyear'   => ['dbfield'=>'sonic_profile_year','label'=>'Profile: Founding Year','type'=>'text','default'=>'','width'=>40,'max'=>20],
@@ -79,6 +83,10 @@ $sysconf['template']['option']['sonic'] = [
     'reader'    => ['dbfield'=>'sonic_top_reader','label'=>'Show Top Reader','type'=>'choice','default'=>1,'data'=>[['1','Yes'],['0','No']]],
     'poplimit'  => ['dbfield'=>'sonic_popular_collection_limit','label'=>'Popular Limit','type'=>'numeric','default'=>10,'width'=>30,'max'=>3],
     'newlimit'  => ['dbfield'=>'sonic_new_collection_limit','label'=>'New Limit','type'=>'numeric','default'=>10,'width'=>30,'max'=>3],
+    'trending'  => ['dbfield'=>'sonic_trending_collection','label'=>'Show Trending 30 Days','type'=>'choice','default'=>1,'data'=>[['1','Yes'],['0','No']]],
+    'trendlimit'=> ['dbfield'=>'sonic_trending_collection_limit','label'=>'Trending Limit','type'=>'numeric','default'=>10,'width'=>30,'max'=>3],
+    'topvisitor'=> ['dbfield'=>'sonic_top_visitor','label'=>'Show Top Visitors','type'=>'choice','default'=>1,'data'=>[['1','Yes'],['0','No']]],
+    'visitlimit'=> ['dbfield'=>'sonic_top_visitor_limit','label'=>'Top Visitors Limit','type'=>'numeric','default'=>6,'width'=>30,'max'=>3],
     'map'      => ['dbfield'=>'sonic_map','label'=>'Show Library Map','type'=>'choice','default'=>1,'data'=>[['1','Yes'],['0','No']]],
     'maplink'  => ['dbfield'=>'sonic_map_link','label'=>'Map Link / Address (Google Maps)','type'=>'text','default'=>'','width'=>90,'max'=>300],
     'mapdesc'  => ['dbfield'=>'sonic_map_desc','label'=>'Map Description','type'=>'longtext','default'=>'','width'=>90,'max'=>300],

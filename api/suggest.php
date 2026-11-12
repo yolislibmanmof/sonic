@@ -1,12 +1,13 @@
 <?php
 /**
- * SONIC OPAC — Suggest Endpoint (Fase 2: FULLTEXT bila ada, fallback prefix/LIKE).
+ * SONIC OPAC — Suggest Endpoint (BATCH 1: boolean-mode dibersihkan, DISTINCT, guard)
  */
 define('INDEX_AUTH', '1');
 require_once '../../../sysconfig.inc.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=60');
+header('X-Content-Type-Options: nosniff');
 
 $out = [];
 try {
@@ -17,17 +18,21 @@ try {
         $pref = $esc . '%';
         $like = '%' . $esc . '%';
 
-        // Judul: coba FULLTEXT (boolean) dulu; gagal → prefix; gagal → LIKE.
+        // FULLTEXT boolean: buang operator khusus agar tidak error/berat
+        $words = trim(preg_replace('/[+\-><()~*\"@]+/', ' ', $q));
         $rows = false;
-        try {
-            $bool = '+' . preg_replace('/\s+/', '* +', trim($esc)) . '*';
-            $rows = $dbs->query("SELECT title FROM biblio WHERE MATCH(title) AGAINST('{$bool}' IN BOOLEAN MODE) LIMIT 5");
-        } catch (Throwable $e) { $rows = false; }
-        if (!$rows || $rows->num_rows === 0) {
-            $rows = $dbs->query("SELECT title FROM biblio WHERE title LIKE '{$pref}' ORDER BY CHAR_LENGTH(title) ASC LIMIT 5");
+        if ($words !== '') {
+            $bool = '+' . preg_replace('/\s+/', '* +', $words) . '*';
+            $bool = $dbs->real_escape_string($bool);
+            try {
+                $rows = $dbs->query("SELECT DISTINCT title FROM biblio WHERE MATCH(title) AGAINST('{$bool}' IN BOOLEAN MODE) LIMIT 5");
+            } catch (Throwable $e) { $rows = false; }
         }
         if (!$rows || $rows->num_rows === 0) {
-            $rows = $dbs->query("SELECT title FROM biblio WHERE title LIKE '{$like}' ORDER BY (title LIKE '{$pref}') DESC, CHAR_LENGTH(title) ASC LIMIT 5");
+            $rows = $dbs->query("SELECT DISTINCT title FROM biblio WHERE title LIKE '{$pref}' ORDER BY CHAR_LENGTH(title) ASC LIMIT 5");
+        }
+        if (!$rows || $rows->num_rows === 0) {
+            $rows = $dbs->query("SELECT DISTINCT title FROM biblio WHERE title LIKE '{$like}' ORDER BY (title LIKE '{$pref}') DESC, CHAR_LENGTH(title) ASC LIMIT 5");
         }
         if ($rows) { while ($r = $rows->fetch_assoc()) { $out[] = ['t' => 'title', 'v' => $r['title']]; } }
 

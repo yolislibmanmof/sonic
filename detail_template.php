@@ -11,7 +11,7 @@ if (!isset($dbs) || !is_object($dbs)) {
 $sonic_has_db = is_object($dbs);
 
 /* ===== HELPERS (load-order safe) ===== */
-if (!function_exists('sonic_kses')) {
+require_once __DIR__ . '/parts/_security.php';
     function sonic_kses($html) {
         $html = (string)$html;
         $html = preg_replace('#<(script|style|iframe|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
@@ -19,7 +19,6 @@ if (!function_exists('sonic_kses')) {
         $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*javascript:[^"\']*\2#i', '$1=$2#$2', $html);
         return $html;
     }
-}
 if (!function_exists('sonic_is_bookmarked')) {
     function sonic_is_bookmarked($biblio_id) {
         global $dbs; static $set = null;
@@ -68,8 +67,8 @@ if ($sonic_cover_raw !== '' && !file_exists('./images/docs/' . $sonic_cover_raw)
 $sonic_cover_url = !empty($sonic_cover_raw) ? './lib/minigalnano/createthumb.php?filename=' . urlencode('images/docs/' . $sonic_cover_raw) . '&width=240' : './lib/minigalnano/createthumb.php?filename=images/default/image.png&width=240';
 $sonic_cover_large = !empty($sonic_cover_raw) ? './lib/minigalnano/createthumb.php?filename=' . urlencode('images/docs/' . $sonic_cover_raw) . '&width=600' : './images/default/image.png';
 $sonic_scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
-$sonic_host = $_SERVER['HTTP_HOST'] ?? 'localhost';
-$sonic_cover_abs = $sonic_scheme . '://' . $sonic_host . SWB . 'images/docs/' . rawurlencode($sonic_cover_raw);
+$sonic_host = function_exists('sonic_host') ? sonic_host() : preg_replace('/[^A-Za-z0-9.\-:\[\]]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
+$sonic_cover_abs = $sonic_scheme . '://' . $sonic_host . SWB . ($sonic_cover_raw !== '' ? 'images/docs/' . rawurlencode($sonic_cover_raw) : 'images/default/image.png');
 $sonic_detail_abs = $sonic_scheme . '://' . $sonic_host . SWB . 'index.php?p=show_detail&id=' . (int)$biblio_id;
 
 /* ===== 4. AVAILABILITY + SHELF ===== */
@@ -93,47 +92,54 @@ if (count($sonic_author_list) === 0 && isset($authors) && is_string($authors) &&
 $sonic_authors_string = sonic_format_authors($sonic_author_list);
 
 /* ===== 6. CITATIONS ===== */
-$sonic_year = $publish_year ?? date('Y');
+$sonic_year = trim((string)($publish_year ?? '')) !== '' ? $publish_year : date('Y');
 $sonic_title_clean = strip_tags(stripslashes($title ?? ''));
 $sonic_edition = htmlspecialchars($edition ?? '', ENT_QUOTES);
 $sonic_publisher = htmlspecialchars($publisher_name ?? '', ENT_QUOTES);
 $sonic_place = htmlspecialchars($publish_place ?? '', ENT_QUOTES);
 $sonic_gmd = (($gmd_name ?? '') == 'Text') ? 'Print' : ($gmd_name ?? '');
+$sonic_title_disp = htmlspecialchars($sonic_title_clean, ENT_QUOTES);
+$sonic_authors_disp = htmlspecialchars($sonic_authors_string, ENT_QUOTES);
+$sonic_gmd_disp = htmlspecialchars($sonic_gmd, ENT_QUOTES);
+$sonic_year_disp = htmlspecialchars((string)$sonic_year, ENT_QUOTES);
 $sonic_citations = [];
-$sonic_citations['APA'] = $sonic_authors_string ? "{$sonic_authors_string} ({$sonic_year}). <em>{$sonic_title_clean}</em>" . ($sonic_edition ? " ({$sonic_edition})" : "") . ". {$sonic_publisher}." : "<em>{$sonic_title_clean}</em> ({$sonic_year}). {$sonic_publisher}.";
-$sonic_citations['Chicago'] = $sonic_authors_string ? "{$sonic_authors_string}. <em>{$sonic_title_clean}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year}. {$sonic_gmd}." : "<em>{$sonic_title_clean}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year}. {$sonic_gmd}.";
-$sonic_citations['MLA'] = $sonic_authors_string ? "{$sonic_authors_string}. \"{$sonic_title_clean}\". <em>{$sonic_edition}</em>, {$sonic_publisher}, {$sonic_year}." : "<em>{$sonic_title_clean}</em>. {$sonic_edition}, {$sonic_publisher}, {$sonic_year}.";
-$sonic_citations['Turabian'] = $sonic_authors_string ? "{$sonic_authors_string}. <em>{$sonic_title_clean}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year}. {$sonic_gmd}." : "<em>{$sonic_title_clean}</em>. {$sonic_place}: {$sonic_publisher}, {$sonic_year}. {$sonic_gmd}.";
+$sonic_citations['APA'] = $sonic_authors_disp ? "{$sonic_authors_disp} ({$sonic_year_disp}). <em>{$sonic_title_disp}</em>" . ($sonic_edition ? " ({$sonic_edition})" : "") . ". {$sonic_publisher}." : "<em>{$sonic_title_disp}</em> ({$sonic_year_disp}). {$sonic_publisher}.";
+$sonic_citations['Chicago'] = $sonic_authors_disp ? "{$sonic_authors_disp}. <em>{$sonic_title_disp}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}." : "<em>{$sonic_title_disp}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}.";
+$sonic_citations['MLA'] = $sonic_authors_disp ? "{$sonic_authors_disp}. \"{$sonic_title_disp}\". <em>{$sonic_edition}</em>, {$sonic_publisher}, {$sonic_year_disp}." : "<em>{$sonic_title_disp}</em>. {$sonic_edition}, {$sonic_publisher}, {$sonic_year_disp}.";
+$sonic_citations['Turabian'] = $sonic_authors_disp ? "{$sonic_authors_disp}. <em>{$sonic_title_disp}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}." : "<em>{$sonic_title_disp}</em>. {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}.";
 
-/* ===== 7. SIMILAR (DDC dulu, lalu pengarang/subjek) ===== */
+/* ===== 7. SIMILAR (DDC dulu, lalu pengarang/subjek) — cache 1 jam ===== */
 $sonic_similar_books = []; $sonic_class = '';
 if ($sonic_has_db) { try { $cq = $dbs->query('SELECT classification FROM biblio WHERE biblio_id=' . (int)$biblio_id); if ($cq && ($cr = $cq->fetch_row())) $sonic_class = trim((string)$cr[0]); } catch (Throwable $e) {} }
 if ($sonic_has_db) {
-    try {
-        if ($sonic_class !== '') {
-            $ddc = $dbs->real_escape_string(substr($sonic_class, 0, 3));
-            $q = $dbs->query("SELECT b.biblio_id, b.title, b.image, GROUP_CONCAT(ma.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ma ON ba.author_id=ma.author_id WHERE b.classification LIKE '{$ddc}%' AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
-            if ($q) while ($r = $q->fetch_assoc()) $sonic_similar_books[] = $r;
-        }
-        if (count($sonic_similar_books) < 4) {
-            $names = []; foreach (array_slice($sonic_author_list, 0, 2) as $a) $names[] = $dbs->real_escape_string($a['author_name']);
-            if ($names) {
-                $conds = array_map(fn($n) => "mst_author.author_name LIKE '%{$n}%'", $names);
-                $q = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ON b.biblio_id=biblio_author.biblio_id LEFT JOIN mst_author ON biblio_author.author_id=mst_author.author_id WHERE (" . implode(' OR ', $conds) . ") AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
-                if ($q) while ($r = $q->fetch_assoc()) { if (!in_array($r['biblio_id'], array_column($sonic_similar_books, 'biblio_id'))) $sonic_similar_books[] = $r; }
+    $sonic_similar_books = sonic_cache('similar_' . (int)$biblio_id, 3600, function () use ($dbs, $biblio_id, $sonic_class, $sonic_author_list) {
+        $books = [];
+        try {
+            if ($sonic_class !== '') {
+                $ddc = $dbs->real_escape_string(substr($sonic_class, 0, 3));
+                $q = $dbs->query("SELECT b.biblio_id, b.title, b.image, GROUP_CONCAT(ma.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ma ON ba.author_id=ma.author_id WHERE b.classification LIKE '{$ddc}%' AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
+                if ($q) while ($r = $q->fetch_assoc()) $books[] = $r;
             }
-        }
-        if (count($sonic_similar_books) < 4) {
-            $topics = []; $tq = $dbs->query("SELECT mt.topic FROM biblio_topic bt JOIN mst_topic mt ON bt.topic_id=mt.topic_id WHERE bt.biblio_id=" . (int)$biblio_id . " LIMIT 3");
-            if ($tq) while ($r = $tq->fetch_row()) $topics[] = $dbs->real_escape_string($r[0]);
-            if ($topics) {
-                $tconds = array_map(fn($t) => "mt.topic LIKE '%{$t}%'", $topics);
-                $q2 = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_topic bt ON b.biblio_id=bt.biblio_id LEFT JOIN mst_topic mt ON bt.topic_id=mt.topic_id LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ON ba.author_id=mst_author.author_id WHERE (" . implode(' OR ', $tconds) . ") AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT " . (6 - count($sonic_similar_books)));
-                if ($q2) while ($r = $q2->fetch_assoc()) { if (!in_array($r['biblio_id'], array_column($sonic_similar_books, 'biblio_id'))) $sonic_similar_books[] = $r; }
+            if (count($books) < 4) {
+                $names = []; foreach (array_slice($sonic_author_list, 0, 2) as $a) $names[] = $dbs->real_escape_string($a['author_name']);
+                if ($names) {
+                    $conds = array_map(fn($n) => "mst_author.author_name LIKE '%{$n}%'", $names);
+                    $q = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ON b.biblio_id=biblio_author.biblio_id LEFT JOIN mst_author ON biblio_author.author_id=mst_author.author_id WHERE (" . implode(' OR ', $conds) . ") AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
+                    if ($q) while ($r = $q->fetch_assoc()) { if (!in_array($r['biblio_id'], array_column($books, 'biblio_id'))) $books[] = $r; }
+                }
             }
-        }
-        $sonic_similar_books = array_slice($sonic_similar_books, 0, 6);
-    } catch (Throwable $e) {}
+            if (count($books) < 4) {
+                $topics = []; $tq = $dbs->query("SELECT mt.topic FROM biblio_topic bt JOIN mst_topic mt ON bt.topic_id=mt.topic_id WHERE bt.biblio_id=" . (int)$biblio_id . " LIMIT 3");
+                if ($tq) while ($r = $tq->fetch_row()) $topics[] = $dbs->real_escape_string($r[0]);
+                if ($topics) {
+                    $tconds = array_map(fn($t) => "mt.topic LIKE '%{$t}%'", $topics);
+                    $q2 = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_topic bt ON b.biblio_id=bt.biblio_id LEFT JOIN mst_topic mt ON bt.topic_id=mt.topic_id LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ON ba.author_id=mst_author.author_id WHERE (" . implode(' OR ', $tconds) . ") AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT " . (6 - count($books)));
+                    if ($q2) while ($r = $q2->fetch_assoc()) { if (!in_array($r['biblio_id'], array_column($books, 'biblio_id'))) $books[] = $r; }
+                }
+            }
+        } catch (Throwable $e) {}
+        return array_slice($books, 0, 6);
+    });
 }
 $sonic_logged = class_exists('utility') && utility::isMemberLogin();
 $sonic_csrf = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getToken() : '';
@@ -233,11 +239,11 @@ $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTok
             <div class="sonic-tab-panel" id="tab-details">
                 <div class="sonic-info-block"><h5><?= __('Detail Information') ?></h5>
                     <dl class="sonic-detail-dl">
-                        <dt><?= __('Series Title') ?></dt><dd><?= htmlspecialchars($series_title ?: '-') ?></dd>
-                        <dt><?= __('Call Number') ?></dt><dd><span class="sonic-highlight"><?= htmlspecialchars($call_number ?: '-') ?></span></dd>
-                        <dt><?= __('Publisher') ?></dt><dd><?= htmlspecialchars($publish_place) ?> : <?= htmlspecialchars($publisher_name) ?>., <?= htmlspecialchars($publish_year) ?></dd>
-                        <dt><?= __('Specific Detail Info') ?></dt><dd><?= htmlspecialchars($spec_detail_info ?: '-') ?></dd>
-                        <dt><?= __('Statement of Responsibility') ?></dt><dd><?= htmlspecialchars($sor ?: '-') ?></dd>
+<dt><?= __('Series Title') ?></dt><dd><?= htmlspecialchars(($series_title ?? '') ?: '-') ?></dd>
+<dt><?= __('Call Number') ?></dt><dd><span class="sonic-highlight"><?= htmlspecialchars(($call_number ?? '') ?: '-') ?></span></dd>
+<dt><?= __('Publisher') ?></dt><dd><?= htmlspecialchars($publish_place ?? '') ?> : <?= htmlspecialchars($publisher_name ?? '') ?>., <?= htmlspecialchars($publish_year ?? '') ?></dd>
+<dt><?= __('Specific Detail Info') ?></dt><dd><?= htmlspecialchars(($spec_detail_info ?? '') ?: '-') ?></dd>
+<dt><?= __('Statement of Responsibility') ?></dt><dd><?= htmlspecialchars(($sor ?? '') ?: '-') ?></dd>
                     </dl>
                 </div>
                 <?php if (count($biblio_custom ?? []) > 0): ?>

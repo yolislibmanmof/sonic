@@ -21,6 +21,13 @@ try {
     if (!empty($sysconf['template']['sonic_top_reader']))
         $sonic_readers = getActiveMembers($dbs, date('Y'), 3);
 } catch (Throwable $e) { /* tetap aman */ }
+$sonic_trending = []; $sonic_visitors = [];
+try {
+    if (!empty($sysconf['template']['sonic_trending_collection']))
+        $sonic_trending = getTrendingBiblio($dbs, (int)($sysconf['template']['sonic_trending_collection_limit'] ?? 10));
+    if (!empty($sysconf['template']['sonic_top_visitor']))
+        $sonic_visitors = getTopVisitors($dbs, (int)($sysconf['template']['sonic_top_visitor_limit'] ?? 6));
+} catch (Throwable $e) { /* tetap aman */ }
 ?>
 
 <div id="slims-home" class="sonic-container">
@@ -83,6 +90,57 @@ try {
             </a>
             <?php endforeach; ?>
         </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- TERAKHIR DILIHAT (client-side, diisi sonic-premium.js) -->
+    <section class="sonic-section sonic-viewed-section" id="sonicViewedSection" style="display:none;">
+        <h3 class="sonic-section-title"><i class="fas fa-history" style="color:var(--sonic-neon);margin-right:.5rem;"></i><?= sonic_t('Recently viewed') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t('Your reading history on this device') ?>
+            <button type="button" class="sonic-mini-btn" id="sonicViewedClear" style="margin-left:.6rem;"><i class="fas fa-trash-alt"></i> <?= sonic_t('Clear history') ?></button>
+        </p>
+        <div class="sonic-biblio-grid" id="sonicViewedGrid"></div>
+    </section>
+
+    <!-- TRENDING 30 HARI -->
+    <?php if (count($sonic_trending) > 0): ?>
+    <section class="sonic-section">
+        <h3 class="sonic-section-title"><i class="fas fa-chart-line" style="color:var(--sonic-plasma);margin-right:.5rem;"></i><?= sonic_t('Trending in the last 30 days') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t('Most borrowed this month') ?></p>
+        <div class="sonic-biblio-grid">
+            <?php foreach ($sonic_trending as $b): ?>
+            <a class="sonic-book" href="index.php?p=show_detail&id=<?= (int)$b['biblio_id'] ?>">
+                <span class="sonic-trend-badge"><i class="fas fa-fire"></i> <?= (int)($b['total'] ?? 0) ?>x</span>
+                <div class="sonic-book-cover">
+                    <img loading="lazy" src="<?= sonic_cover($b['image'] ?? '') ?>" alt="<?= htmlspecialchars($b['title']) ?>" onerror="this.src='./images/default/image.png'">
+                </div>
+                <h4 class="sonic-book-title"><?= htmlspecialchars($b['title']) ?></h4>
+                <p class="sonic-book-author"><i class="fas fa-chart-line"></i> <?= (int)($b['total'] ?? 0) ?>x <?= sonic_t('borrowed (30d)') ?></p>
+            </a>
+            <?php endforeach; ?>
+        </div>
+    </section>
+    <?php endif; ?>
+
+    <!-- ANGGOTA TERBANYAK MENGUNJUNGI -->
+    <?php if (count($sonic_visitors) > 0): ?>
+    <section class="sonic-section">
+        <h3 class="sonic-section-title"><i class="fas fa-door-open" style="color:var(--sonic-success);margin-right:.5rem;"></i><?= sonic_t('Most frequent visitors') ?></h3>
+        <p class="sonic-section-sub"><?= sonic_t('Our most active visitors') ?></p>
+        <ul class="sonic-topics">
+            <?php foreach ($sonic_visitors as $i => $m): ?>
+            <li>
+                <div class="sonic-topic sonic-visitor-card" style="cursor:default;">
+                    <span class="sonic-visitor-rank"><?= $i + 1 ?></span>
+                    <div class="sonic-topic-icon" style="border-radius:50%;overflow:hidden;">
+                        <img src="<?= sonic_cover($m['member_image'] ?? 'person.png', 120, 'persons') ?>" style="width:100%;height:100%;object-fit:cover;" onerror="this.src='./images/persons/person.png'">
+                    </div>
+                    <span class="sonic-topic-label"><?= htmlspecialchars($m['member_name']) ?></span>
+                    <span class="sonic-tag" style="cursor:default;"><i class="fas fa-door-open"></i> <?= (int)$m['total'] ?> <?= sonic_t('visits') ?></span>
+                </div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
     </section>
     <?php endif; ?>
 

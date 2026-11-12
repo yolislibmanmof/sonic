@@ -97,9 +97,17 @@
         if (!cfg.voice || !('speechSynthesis' in window)) return;
         try { var u = new SpeechSynthesisUtterance(String(t).replace(/<[^>]+>/g, '')); u.lang = cfg.lang || 'id-ID'; u.volume = 1; u.rate = 1; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch (e) {}
     }
+    /* Sanitasi pesan core: escape semua, lalu izinkan kembali tag formatting kecil */
+    function cleanMsg(html) {
+        var s = String(html == null ? '' : html);
+        s = s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        s = s.replace(/&lt;(\/?)(b|strong|i|em|br)\s*\/?&gt;/gi, '<$1$2>');
+        s = s.replace(/&lt;div class="error[^"&]*"&gt;/gi, '<div class="error">').replace(/&lt;\/div&gt;/gi, '</div>');
+        return s;
+    }
     function showSuccess(html, isError) {
         if (!success) return;
-        msg.innerHTML = isError ? '<span class="error">' + html + '</span>' : html;
+        msg.innerHTML = isError ? '<span class="error">' + cleanMsg(html) + '</span>' : cleanMsg(html);
         success.classList.add('show');
         if (!isError) confetti();
         var bar = success.querySelector('.sonic-kiosk-success-bar span');
@@ -118,7 +126,7 @@
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (res.new_token) { latestToken = res.new_token; if (token) token.value = res.new_token; }
-                if (photo) { photo.src = './images/persons/' + (res.image || 'person.png'); photo.onerror = function () { this.src = './images/persons/person.png'; }; }
+                if (photo) { photo.src = './images/persons/' + encodeURIComponent(res.image || 'person.png'); photo.onerror = function () { this.src = './images/persons/person.png'; }; }
                 showSuccess(res.message || 'Terima kasih!', false);
                 speak(res.message || '');
                 bumpStat('today'); bumpStat('total');

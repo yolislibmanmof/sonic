@@ -1,26 +1,30 @@
 <?php
-# @Filename: footer.php (SONIC v4.5 — Live Stats + Config Socials + i18n)
+# @Filename: footer.php (SONIC — BATCH 1: statistik cache, validasi URL, bundle-ready, defer)
 
-/* ===== LIVE STATS (read-only, guarded) ===== */
-$sonic_stats = ['collections' => 0, 'members' => 0, 'downloads' => 0, 'hours' => 24];
-if (isset($dbs) && is_object($dbs)) {
-    try {
-        $r = $dbs->query('SELECT COUNT(*) FROM biblio');
-        if ($r) $sonic_stats['collections'] = (int)$r->fetch_row()[0];
-        $r = $dbs->query("SELECT COUNT(*) FROM member WHERE expire_date >= CURDATE()");
-        if ($r) $sonic_stats['members'] = (int)$r->fetch_row()[0];
-        $r = $dbs->query('SELECT COUNT(*) FROM biblio_attachment');
-        if ($r) $sonic_stats['downloads'] = (int)$r->fetch_row()[0];
-    } catch (Throwable $e) { /* silent */ }
-}
+/* ===== LIVE STATS (cache 10 menit — bukan 3 full-scan tiap halaman) ===== */
+$sonic_stats = sonic_cache('footer_stats', 600, function () use ($dbs) {
+    $s = ['collections' => 0, 'members' => 0, 'downloads' => 0, 'hours' => 24];
+    if (isset($dbs) && is_object($dbs)) {
+        try {
+            $r = $dbs->query('SELECT COUNT(*) FROM biblio');
+            if ($r) $s['collections'] = (int)$r->fetch_row()[0];
+            $r = $dbs->query("SELECT COUNT(*) FROM member WHERE expire_date >= CURDATE()");
+            if ($r) $s['members'] = (int)$r->fetch_row()[0];
+            $r = $dbs->query('SELECT COUNT(*) FROM biblio_attachment');
+            if ($r) $s['downloads'] = (int)$r->fetch_row()[0];
+        } catch (Throwable $e) {}
+    }
+    return $s;
+});
 $sonic_social = [
-    'facebook'  => $sysconf['template']['sonic_fb_link'] ?? '',
-    'twitter'   => $sysconf['template']['sonic_twitter_link'] ?? '',
-    'instagram' => $sysconf['template']['sonic_instagram_link'] ?? '',
-    'youtube'   => $sysconf['template']['sonic_youtube_link'] ?? '',
-    'telegram'  => $sysconf['template']['sonic_telegram_link'] ?? '',
+    'facebook'  => sonic_http_url($sysconf['template']['sonic_fb_link'] ?? ''),
+    'twitter'   => sonic_http_url($sysconf['template']['sonic_twitter_link'] ?? ''),
+    'instagram' => sonic_http_url($sysconf['template']['sonic_instagram_link'] ?? ''),
+    'youtube'   => sonic_http_url($sysconf['template']['sonic_youtube_link'] ?? ''),
+    'telegram'  => sonic_http_url($sysconf['template']['sonic_telegram_link'] ?? ''),
 ];
 $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.com';
+$sonic_libname = htmlspecialchars($sysconf['library_name'] ?? '', ENT_QUOTES);
 ?>
 
 <footer class="sonic-footer" id="sonicFooter">
@@ -73,12 +77,12 @@ $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.c
                     }
                     ?>
                 </div>
-                <h3 class="sonic-footer-title"><?= $sysconf['library_name'] ?></h3>
-                <p class="sonic-footer-desc"><?= $sysconf['template']['sonic_footer_about_us'] ?? sonic_t('Digital library with lightning-fast access') ?></p>
+                <h3 class="sonic-footer-title"><?= $sonic_libname ?></h3>
+                <p class="sonic-footer-desc"><?= htmlspecialchars($sysconf['template']['sonic_footer_about_us'] ?? sonic_t('Digital library with lightning-fast access'), ENT_QUOTES) ?></p>
 
                 <div class="sonic-social-links">
                     <?php foreach ($sonic_social as $net => $link): if ($link === '') continue; ?>
-                    <a href="<?= htmlspecialchars($link) ?>" target="_blank" rel="noopener" class="sonic-social-btn" title="<?= ucfirst($net) ?>"><i class="fab fa-<?= $net === 'facebook' ? 'facebook-f' : ($net === 'telegram' ? 'telegram-plane' : $net) ?>"></i></a>
+                    <a href="<?= htmlspecialchars($link, ENT_QUOTES) ?>" target="_blank" rel="noopener" class="sonic-social-btn" title="<?= ucfirst($net) ?>"><i class="fab fa-<?= $net === 'facebook' ? 'facebook-f' : ($net === 'telegram' ? 'telegram-plane' : $net) ?>"></i></a>
                     <?php endforeach; ?>
                 </div>
             </div>
@@ -109,7 +113,7 @@ $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.c
             <div class="sonic-footer-col">
                 <h4 class="sonic-footer-heading"><i class="fas fa-search"></i> <?= sonic_t('Quick Search') ?></h4>
                 <form action="index.php" class="sonic-footer-search">
-                    <input type="hidden" name="csrf_token" value="<?= $_SESSION['csrf_token'] ?? '' ?>">
+                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '', ENT_QUOTES) ?>">
                     <div class="sonic-search-box">
                         <i class="fas fa-search"></i>
                         <input name="keywords" type="text" placeholder="<?= sonic_t('Search collections...') ?>" autocomplete="off">
@@ -139,7 +143,7 @@ $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.c
         <div class="sonic-container">
             <div class="sonic-footer-bottom-content">
                 <div class="sonic-footer-copyright">
-                    <p>&copy; <?= date('Y') ?> <span class="sonic-highlight"><?= $sysconf['library_name'] ?></span>. <?= sonic_t('All rights reserved') ?>.</p>
+                    <p>&copy; <?= date('Y') ?> <span class="sonic-highlight"><?= $sonic_libname ?></span>. <?= sonic_t('All rights reserved') ?>.</p>
                     <p><?= sonic_t('Powered by') ?> <a href="https://slims.web.id" target="_blank" rel="noopener" class="sonic-link"><code>SLiMS</code></a> |
                        <?= sonic_t('Template') ?> <span class="sonic-brand-text">SONIC <i class="fas fa-bolt"></i></span></p>
                 </div>
@@ -157,30 +161,32 @@ $sonic_email = $sysconf['template']['sonic_contact_email'] ?? 'library@example.c
 $_sonic_modals = ['_modal_topic.php', '_modal_advanced.php', '_modal_social_media.php'];
 foreach ($_sonic_modals as $_modal) {
     $_modal_path = __DIR__ . '/' . $_modal;
-    if (file_exists($_modal_path)) {
-        include $_modal_path;
-    }
+    if (file_exists($_modal_path)) include $_modal_path;
 }
 ?>
 
 <script src="<?= JWB; ?>highlight.js"></script>
-<?php if(isset($engine) && method_exists($this, 'generateKeywords') && $searchableInJsArray = $this->generateKeywords($engine->searchable_fields)): ?>
+<?php
+/* FIX: pakai $opac (objek Opac yang sah di scope template), bukan $this tak terjamin */
+$_sonic_ctx = $opac ?? ($this ?? null);
+if (isset($engine) && is_object($_sonic_ctx) && method_exists($_sonic_ctx, 'generateKeywords') && $searchableInJsArray = $_sonic_ctx->generateKeywords($engine->searchable_fields)): ?>
     <script>$('.card-body > *').highlight(<?= $searchableInJsArray ?>);</script>
 <?php endif; ?>
 
 <?php
-$_sonic_js = ['js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js'];
-foreach ($_sonic_js as $_js) {
-    $_js_path = __DIR__ . '/../assets/' . $_js;
-    if (file_exists($_js_path)) {
-        echo '<script src="' . assets($_js) . '?v=' . sonic_asset_ver($_js) . '"></script>' . "\n";
+/* SONIC JS: bundle bila ada (Batch 2), fallback modular — semua defer */
+if (is_file(__DIR__ . '/../assets/js/sonic.bundle.js')) {
+    echo '<script defer src="' . assets('js/sonic.bundle.js') . '?v=' . sonic_asset_ver('js/sonic.bundle.js') . '"></script>' . "\n";
+} else {
+    $_sonic_js = ['js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js','js/sonic-premium.js'];
+    foreach ($_sonic_js as $_js) {
+        if (file_exists(__DIR__ . '/../assets/' . $_js)) {
+            echo '<script defer src="' . assets($_js) . '?v=' . sonic_asset_ver($_js) . '"></script>' . "\n";
+        }
     }
 }
-
 $_vegas_path = __DIR__ . '/../assets/js/vegas.js.php';
-if (file_exists($_vegas_path)) {
-    include $_vegas_path;
-}
+if (file_exists($_vegas_path)) include $_vegas_path;
 ?>
 
 </body>

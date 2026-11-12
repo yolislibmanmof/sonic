@@ -1,41 +1,41 @@
 <?php
-# @Filename: _search-form.php (SONIC v4 — Fullscreen Slider + Welcome Walk)
+# @Filename: _search-form.php (SONIC — FINAL: slider stabil + WebP ringan)
 $sonic_compact = !empty($sonic_compact_hero);
 
-/* ===== SLIDER SCANNER (multi-folder: assets/images/slider/ + assets/images/slide*) ===== */
+/* ===== SLIDER SCANNER (WebP diprioritaskan, nama file di-escape) ===== */
 $slider_imgs = [];
 $slider_seen = [];
 $slider_dirs = [
     __DIR__ . '/../assets/images/slider' => 'images/slider/',
     __DIR__ . '/../assets/images'        => 'images/',
 ];
+$slider_prio = ['webp' => 4, 'jpg' => 3, 'jpeg' => 3, 'png' => 2, 'gif' => 1];
 foreach ($slider_dirs as $dir => $prefix) {
     if (!is_dir($dir)) continue;
     $files = scandir($dir);
     if ($files === false) continue;
     foreach ($files as $sf) {
-        if (!preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $sf)) continue;   // JPG + PNG + lainnya
-        if ($prefix === 'images/' && !preg_match('/^slide/i', $sf)) continue; // root: hanya slide*
-        $key = strtolower(preg_replace('/\.[^.]+$/', '', $sf));            // dedup slide1.jpg vs slide1.png
-        if (isset($slider_seen[$key])) continue;
-        $slider_seen[$key] = true;
-        $slider_imgs[] = ['src' => assets($prefix . $sf), 'name' => $sf];
+        if (!preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $sf, $mm)) continue;
+        if ($prefix === 'images/' && !preg_match('/^slide/i', $sf)) continue;
+        $key = strtolower(preg_replace('/\.[^.]+$/', '', $sf));
+        $prio = $slider_prio[strtolower($mm[1])] ?? 0;
+        if (isset($slider_seen[$key]) && $slider_seen[$key]['prio'] >= $prio) continue;
+        $slider_seen[$key] = ['prio' => $prio, 'item' => ['src' => assets($prefix . rawurlencode($sf)), 'name' => $sf]];
     }
 }
+foreach ($slider_seen as $s) $slider_imgs[] = $s['item'];
 usort($slider_imgs, function ($a, $b) { return strnatcasecmp($a['name'], $b['name']); });
-
-/* ===== TEKS SAMBUTAN (silakan edit baris ini) ===== */
-$sonic_welcome_text = 'SELAMAT DATANG DI LAYANAN OPAC PERPUSTAKAAN';
-$sonic_welcome_words = explode(' ', $sonic_welcome_text);
+$sonic_slider_count = count($slider_imgs);
 ?>
 
 <section class="sonic-hero<?= $sonic_compact ? ' compact' : '' ?>" id="sonicHero">
 
-    <?php if (!$sonic_compact && count($slider_imgs) > 0): ?>
-    <!-- ===== FULLSCREEN PHOTO SLIDER ===== -->
+    <?php if (!$sonic_compact && $sonic_slider_count > 0): ?>
+    <!-- ===== FULLSCREEN PHOTO SLIDER (semua slide ber-background inline → selalu tampil) ===== -->
+    <link rel="preload" as="image" href="<?= htmlspecialchars($slider_imgs[0]['src'], ENT_QUOTES) ?>">
     <div class="sonic-slider" id="sonicSlider">
-        <?php foreach ($slider_imgs as $si => $s): ?>
-            <div class="sonic-slide<?= $si === 0 ? ' active' : '' ?>" style="background-image:url('<?= $s['src'] ?>')"></div>
+        <?php foreach ($slider_imgs as $si => $s): $surl = htmlspecialchars($s['src'], ENT_QUOTES); ?>
+        <div class="sonic-slide<?= $si === 0 ? ' active' : '' ?>" style="background-image:url('<?= $surl ?>')"></div>
         <?php endforeach; ?>
         <div class="sonic-slider-overlay"></div>
 
@@ -105,9 +105,11 @@ $sonic_welcome_words = explode(' ', $sonic_welcome_text);
 
         <a href="#search-wraper" class="sonic-scroll-cue" aria-label="Gulir ke pencarian"><i class="fas fa-chevron-down"></i></a>
 
+        <?php if ($sonic_slider_count > 1): ?>
         <button type="button" class="sonic-slider-arrow prev" id="sliderPrev" aria-label="Previous"><i class="fas fa-chevron-left"></i></button>
         <button type="button" class="sonic-slider-arrow next" id="sliderNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
         <div class="sonic-slider-dots" id="sliderDots"></div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 

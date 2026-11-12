@@ -1,12 +1,18 @@
 <?php
 /**
- * SONIC OPAC — Facet Counts (read-only, JSON murni). FASE 1: kolom location_name benar.
+ * SONIC OPAC — Facet Counts (BATCH 1: cache server 120 detik, read-only)
  */
 define('INDEX_AUTH', '1');
 require_once '../../../sysconfig.inc.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: public, max-age=120');
+header('X-Content-Type-Options: nosniff');
+
+$cacheFile = sys_get_temp_dir() . '/sonic_facet_' . md5(defined('SB') ? SB : __DIR__) . '.json';
+if (is_file($cacheFile) && (time() - (int)@filemtime($cacheFile)) < 120) {
+    readfile($cacheFile); exit;
+}
 
 $out = ['gmd' => [], 'location' => [], 'colltype' => []];
 try {
@@ -22,4 +28,6 @@ try {
     }
 } catch (Throwable $e) { /* silent */ }
 
-echo json_encode($out);
+$json = json_encode($out);
+@file_put_contents($cacheFile, $json, LOCK_EX);
+echo $json;
