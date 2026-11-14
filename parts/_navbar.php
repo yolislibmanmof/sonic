@@ -140,16 +140,30 @@ foreach ($sonic_extra_menus as $em) { if ($sonic_extra_active($em)) { $sonic_gro
             <?php endif; ?>
 
             <?php
+            /* ===== BATASI BAHASA PUBLIK: hanya Indonesia & Inggris (core tidak disentuh) ===== */
+            $sonic_allowed_langs = ['id_ID', 'en_US'];
+            $sonic_lang_map = [];
+            foreach ($available_languages ?? [] as $lang_index) {
+                if (in_array($lang_index[0], $sonic_allowed_langs, true)) $sonic_lang_map[$lang_index[0]] = $lang_index;
+            }
+            /* Urutan tetap: Indonesia dulu, lalu Inggris; yang tidak ada di DB otomatis dilewati */
+            $sonic_lang_list = [];
+            foreach ($sonic_allowed_langs as $alc) { if (isset($sonic_lang_map[$alc])) $sonic_lang_list[] = $sonic_lang_map[$alc]; }
+
             $langstr = '';
-            $current_lang = ['name' => 'EN', 'code' => 'en'];
+            $current_lang = ['name' => 'EN', 'code' => 'us'];
             $select_lang = $_COOKIE['select_lang'] ?? $sysconf['default_lang'];
+            /* Bila cookie masih menyimpan bahasa yang sudah dihapus (mis. fa_IR), jatuh ke default yang diizinkan */
+            if (!in_array($select_lang, $sonic_allowed_langs, true)) {
+                $select_lang = in_array($sysconf['default_lang'], $sonic_allowed_langs, true) ? $sysconf['default_lang'] : 'id_ID';
+            }
             $sonic_raw_qs = filter_input(INPUT_SERVER, 'QUERY_STRING', FILTER_UNSAFE_RAW);
             if (!is_string($sonic_raw_qs) || $sonic_raw_qs === '') $sonic_raw_qs = stripslashes((string)($_SERVER['QUERY_STRING'] ?? ''));
             $sonic_lang_qs = [];
             if ($sonic_raw_qs !== '') parse_str($sonic_raw_qs, $sonic_lang_qs);
             unset($sonic_lang_qs['select_lang']);
             $sonic_lang_prefix = 'index.php?' . (empty($sonic_lang_qs) ? '' : http_build_query($sonic_lang_qs) . '&');
-            foreach ($available_languages ?? [] as $lang_index) {
+            foreach ($sonic_lang_list as $lang_index) {
                 $lang_code = $lang_index[0];
                 $lang_name = $lang_index[1];
                 $code_arr = explode('_', $lang_code);

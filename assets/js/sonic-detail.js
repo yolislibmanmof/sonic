@@ -185,14 +185,378 @@
 
     function initCopyCall() { var b = $('#sonicCopyCall'); if (!b) return; b.addEventListener('click', function () { copy(b.getAttribute('data-call')); }); }
 
+    /* ===== MODUL 2b — FLIPBOOK READER (Batch 7): Standar utuh + Flip Buku ===== */
+    var reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function pdfUrlFrom(href) {
+        var m = href.match(/[?&]file=([^&]+)/);
+        if (m) { try { return decodeURIComponent(m[1]); } catch (e) { return m[1]; } }
+        return href;
+    }
+    function pdfjsCandidates(href) {
+        var list = [base() + 'assets/plugin/pdfjs/build/pdf.js', base() + 'assets/plugin/pdfjs/build/pdf.min.js'];
+        var v = href.match(/^(.*?)(?:web\/)?viewer\.html/);
+        if (v) { list.push(v[1] + 'build/pdf.js', v[1] + 'build/pdf.min.js', v[1] + 'pdf.js'); }
+        list.push('lib/pdfjs/build/pdf.js', 'lib/pdfjs/build/pdf.min.js', 'lib/pdfjs/pdf.js', 'lib/pdf.js/build/pdf.js');
+        return list;
+    }
+    function loadPdfJs(href) {
+        if (window.pdfjsLib) return Promise.resolve(window.pdfjsLib);
+        if (window.PDFJS) return Promise.resolve(window.PDFJS);
+        var cands = pdfjsCandidates(href);
+        return new Promise(function (resolve, reject) {
+            var i = 0;
+            (function next() {
+                if (i >= cands.length) { reject(new Error('pdfjs-not-found')); return; }
+                var url = cands[i++];
+                var s = document.createElement('script');
+                s.src = url;
+                s.onload = function () {
+                    var lib = window.pdfjsLib || window.PDFJS;
+                    if (!lib) { next(); return; }
+                    var worker = url.replace(/pdf(\.min)?\.js(\?.*)?$/, 'pdf.worker$1.js');
+                    try { if (lib.GlobalWorkerOptions) lib.GlobalWorkerOptions.workerSrc = worker; else lib.workerSrc = worker; } catch (e) {}
+                    resolve(lib);
+                };
+                s.onerror = function () { s.remove(); next(); };
+                document.head.appendChild(s);
+            })();
+        });
+    }
+
+    function openReader(href) {
+        var pdfUrl = pdfUrlFrom(href);
+        var root = $('.sonic-detail-revolution');
+        var biblioId = root ? root.getAttribute('data-biblio-id') : '0';
+        var posKey = 'sonicFlipPos:' + biblioId + ':' + pdfUrl;
+        var shell =
+            '<div class="sonic-reader-bar">' +
+              '<div class="sonic-reader-modes">' +
+                '<button type="button" class="sonic-mini-btn sonic-reader-mode" data-mode="flip" aria-pressed="false"><i class="fas fa-book"></i> Flip Buku</button>' +
+                '<button type="button" class="sonic-mini-btn sonic-reader-mode" data-mode="std" aria-pressed="false"><i class="fas fa-file-pdf"></i> Standar</button>' +
+              '</div>' +
+              '<a class="sonic-mini-btn" href="' + esc(href) + '" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Tab baru</a>' +
+            '</div>' +
+            '<div class="sonic-reader-flip" hidden>' +
+              '<div class="sonic-flip-toolbar">' +
+                '<button type="button" class="sonic-mini-btn" data-flip="first" title="Awal"><i class="fas fa-angle-double-left"></i></button>' +
+                '<button type="button" class="sonic-mini-btn" data-flip="prev" title="Sebelumnya"><i class="fas fa-angle-left"></i></button>' +
+                '<span class="sonic-flip-indicator">—</span>' +
+                '<button type="button" class="sonic-mini-btn" data-flip="next" title="Berikutnya"><i class="fas fa-angle-right"></i></button>' +
+                '<button type="button" class="sonic-mini-btn" data-flip="last" title="Akhir"><i class="fas fa-angle-double-right"></i></button>' +
+                '<span class="sonic-flip-progress"><i></i></span>' +
+                '<button type="button" class="sonic-mini-btn" data-flip="zoomout" title="Perkecil"><i class="fas fa-search-minus"></i></button>' +
+                '<button type="button" class="sonic-mini-btn" data-flip="zoomin" title="Perbesar"><i class="fas fa-search-plus"></i></button>' +
+                '<button type="button" class="sonic-mini-btn" data-flip="full" title="Layar penuh"><i class="fas fa-expand"></i></button>' +
+              '</div>' +
+              '<div class="sonic-flip-stage">' +
+                '<div class="sonic-flip-book">' +
+                  '<div class="sonic-flip-page left"><img alt="" hidden><span class="blank"></span></div>' +
+                  '<div class="sonic-flip-page right"><img alt="" hidden><span class="blank"></span></div>' +
+                  '<div class="sonic-flip-leaf" hidden><div class="face front"><img alt=""></div><div class="face back"><img alt=""></div></div>' +
+                '</div>' +
+              '</div>' +
+              '<div class="sonic-flip-status"></div>' +
+            '</div>' +
+            '<div class="sonic-reader-std" hidden><iframe class="sonic-reader-frame" title="reader" src="about:blank"></iframe></div>';
+        var m = modal('sonicReaderModal', shell);
+
+        var els = {
+            flip: m.querySelector('.sonic-reader-flip'),
+            std: m.querySelector('.sonic-reader-std'),
+            frame: m.querySelector('.sonic-reader-frame'),
+            stage: m.querySelector('.sonic-flip-stage'),
+            book: m.querySelector('.sonic-flip-book'),
+            left: m.querySelector('.sonic-flip-page.left'),
+            right: m.querySelector('.sonic-flip-page.right'),
+            leaf: m.querySelector('.sonic-flip-leaf'),
+            ind: m.querySelector('.sonic-flip-indicator'),
+            prog: m.querySelector('.sonic-flip-progress i'),
+            status: m.querySelector('.sonic-flip-status'),
+            modes: $all('.sonic-reader-mode', m)
+        };
+        var st = { pdf: null, num: 0, leaves: 0, f: 0, zoom: 1, cache: {}, pending: {}, busy: false, ready: false, loading: false, mode: 'flip' };
+
+        function status(msg, html) { if (html) els.status.innerHTML = msg; else els.status.textContent = msg; }
+        function savePos() { try { localStorage.setItem(posKey, String(st.f)); } catch (e) {} }
+        function setPage(el, url) {
+            var img = el.querySelector('img'), blank = el.querySelector('.blank');
+            if (url) { img.src = url; img.hidden = false; if (blank) blank.textContent = ''; }
+            else { img.hidden = true; if (blank) blank.textContent = ''; }
+        }
+        /* Antrean render maks 2 agar tidak berebut CPU dengan animasi */
+        var rq = [], rActive = 0;
+        function pump() {
+            while (rActive < 2 && rq.length) {
+                var job = rq.shift(); rActive++;
+                job(function () { rActive--; pump(); });
+            }
+        }
+        function pageImg(i) {
+            if (i < 0 || i >= st.num) return Promise.resolve(null);
+            var key = 'p' + i;
+            if (st.cache[key]) return Promise.resolve(st.cache[key]);
+            if (st.pending[key]) return st.pending[key];
+            var p = new Promise(function (resolve) {
+                rq.push(function (done) {
+                    st.pdf.getPage(i + 1).then(function (page) {
+                        var h = els.stage.clientHeight || 480;
+                        var bv = page.getViewport({ scale: 1 });
+                        var dpr = Math.min(2, window.devicePixelRatio || 1);
+                        var vp = page.getViewport({ scale: (h / bv.height) * dpr });
+                        var cv = document.createElement('canvas');
+                        cv.width = Math.max(1, Math.floor(vp.width)); cv.height = Math.max(1, Math.floor(vp.height));
+                        var ctx = cv.getContext('2d', { alpha: false });
+                        ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, cv.width, cv.height);
+                        return page.render({ canvasContext: ctx, viewport: vp }).promise.then(function () {
+                            var url = cv.toDataURL('image/jpeg', 0.85);
+                            st.cache[key] = url;
+                            var ks = Object.keys(st.cache);
+                            if (ks.length > 48) delete st.cache[ks[0]];
+                            resolve(url);
+                        });
+                    }).catch(function () { resolve(null); }).then(function () { delete st.pending[key]; done(); });
+                });
+                pump();
+            });
+            st.pending[key] = p;
+            return p;
+        }
+        function updateHud() {
+            var L = 2 * st.f - 1, R = 2 * st.f;
+            var lt = (L >= 0 && L < st.num) ? (L + 1) : null;
+            var rt = (R >= 0 && R < st.num) ? (R + 1) : null;
+            els.ind.textContent = lt && rt ? ('Halaman ' + lt + '–' + rt + ' / ' + st.num) : (rt ? ('Halaman ' + rt + ' / ' + st.num) : (lt ? ('Halaman ' + lt + ' / ' + st.num) : '—'));
+            els.prog.style.width = (st.leaves ? (st.f / st.leaves) * 100 : 0) + '%';
+        }
+        function renderSpread() {
+            if (!st.ready) return;
+            status('Merender halaman…');
+            els.book.style.transform = 'scale(' + st.zoom + ')';
+            var L = 2 * st.f - 1, R = 2 * st.f;
+            Promise.all([pageImg(L), pageImg(R)]).then(function (r) {
+                setPage(els.left, r[0]); setPage(els.right, r[1]);
+                updateHud();
+                if (!r[0] && !r[1] && st.num > 0) {
+                    status('Render halaman gagal (kemungkinan CSP blob). Coba mode Standar atau muat ulang.', false);
+                    try { console.warn('[sonic-flip] render kosong — cek CSP img-src blob:'); } catch (e) {}
+                } else status('');
+            });
+        }
+        /* Prefetch dua arah saat idle → flip maju/mundur selalu dari cache */
+        function prefetch() {
+            if (!st.ready) return;
+            var idle = window.requestIdleCallback || function (fn) { return setTimeout(fn, 120); };
+            idle(function () {
+                [st.f + 1, st.f - 1].forEach(function (n) {
+                    if (n < 0 || n > st.leaves) return;
+                    pageImg(2 * n - 1); pageImg(2 * n);
+                });
+            });
+        }
+        function commitTo(target) {
+            st.f = target; st.busy = false;
+            savePos(); renderSpread(); prefetch();
+        }
+        function flip(dir) {
+            if (!st.ready || st.busy) return;
+            var target = st.f + dir;
+            if (target < 0 || target > st.leaves) return;
+            st.busy = true;
+            var side, frontIdx, backIdx, underIdx;
+            if (dir > 0) { side = 'right'; frontIdx = 2 * st.f; backIdx = 2 * st.f + 1; underIdx = 2 * st.f + 2; }
+            else { side = 'left'; frontIdx = 2 * st.f - 1; backIdx = 2 * st.f - 2; underIdx = 2 * st.f - 3; }
+            Promise.all([pageImg(frontIdx), pageImg(backIdx), pageImg(underIdx)]).then(function (r) {
+                els.leaf.className = 'sonic-flip-leaf ' + side;
+                els.leaf.querySelector('.front img').src = r[0] || '';
+                els.leaf.querySelector('.back img').src = r[1] || '';
+                if (dir > 0) setPage(els.right, r[2]); else setPage(els.left, r[2]);
+                els.leaf.hidden = false;
+                void els.leaf.offsetWidth;
+                var done = false;
+                function commit() {
+                    if (done) return; done = true;
+                    els.leaf.removeEventListener('transitionend', commit);
+                    els.leaf.hidden = true; els.leaf.classList.remove('go');
+                    commitTo(target);
+                }
+                if (reducedMotion) { commit(); return; }
+                els.leaf.classList.add('go');
+                els.leaf.addEventListener('transitionend', commit);
+                setTimeout(commit, 950);
+            });
+        }
+        function jump(target) {
+            if (!st.ready || st.busy) return;
+            target = Math.max(0, Math.min(st.leaves, target));
+            commitTo(target);
+        }
+        /* Zoom = transform CSS (GPU, instan), bukan render ulang */
+        function setZoom(z) {
+            st.zoom = Math.max(0.6, Math.min(2.4, z));
+            els.book.style.transform = 'scale(' + st.zoom + ')';
+        }
+        function toggleFull() {
+            if (document.fullscreenElement) { if (document.exitFullscreen) document.exitFullscreen(); }
+            else if (els.stage.requestFullscreen) els.stage.requestFullscreen();
+        }
+        /* Resolve URL PDF asli (wrapper fstream mengembalikan HTML), lalu parse &
+           render dengan PDF.js vendored 3.x — decode JPEG tanpa blob-Image → aman CSP. */
+        function coreWin() { try { return els.frame.contentWindow; } catch (e) { return null; } }
+        function absUrl(u) { try { return new URL(u, window.location.href).href; } catch (e) { return u; } }
+         /* Ambil byte PDF sendiri: validasi magic %PDF-, fallback Range, multi-URL.
+           Lalu serahkan byte mentah ke PDF.js (data) → bypass lapisan jaringan PDF.js. */
+        function fetchPdfBytes(url) {
+            function attempt(headers) {
+                return fetch(url, { credentials: 'same-origin', headers: headers || {} }).then(function (r) {
+                    if (!r.ok && r.status !== 206) return null;
+                    return r.arrayBuffer().then(function (buf) {
+                        if (!buf || buf.byteLength < 5) return null;
+                        var u = new Uint8Array(buf, 0, 5);
+                        if (String.fromCharCode(u[0], u[1], u[2], u[3], u[4]) !== '%PDF-') return null;
+                        return buf;
+                    });
+                }).catch(function () { return null; });
+            }
+            return attempt({ Range: 'bytes=0-' }).then(function (b) { return b || attempt(); });
+        }
+        function candidateUrls() {
+            var list = [];
+            function push(u) { if (u && list.indexOf(u) < 0) list.push(u); }
+            push(absUrl(pdfUrl));
+            push(absUrl(pdfUrl.replace(/p=fstream(?![\w-])/, 'p=fstream-pdf')));
+            try {
+                var w = coreWin(); var app = w && w.PDFViewerApplication;
+                var u = app && (app.url || (app.pdfLoadingTask && app.pdfLoadingTask.url) || app.baseUrl);
+                if (u) push(absUrl(u));
+            } catch (e) {}
+            return fetch(pdfUrl, { credentials: 'same-origin' }).then(function (r) { return r.text(); }).then(function (txt) {
+                var re = /["']([^"'\s<>]*(?:p=fstream[^"'\s<>]*|\.pdf(?:\?[^"'\s<>]*)?))["']/gi, m;
+                while ((m = re.exec(txt))) push(absUrl(decodeURIComponent(m[1])));
+                var d = txt.match(/defaultUrl\s*=\s*["']([^"']+)["']/i);
+                if (d) push(absUrl(decodeURIComponent(d[1])));
+                return list;
+            }).catch(function () { return list; });
+        }
+        function ensureBook() {
+            if (st.ready || st.loading) return;
+            st.loading = true;
+            status('Memuat mesin PDF & dokumen…');
+            candidateUrls().then(function (urls) {
+                var i = 0;
+                (function next() {
+                    if (i >= urls.length) return Promise.reject(new Error('pdf-bytes-not-found'));
+                    var u = urls[i++];
+                    return fetchPdfBytes(u).then(function (buf) { return buf || next(); });
+                })();
+                return (function loop() {
+                    if (i >= urls.length) return Promise.reject(new Error('pdf-bytes-not-found'));
+                    var u = urls[i++];
+                    return fetchPdfBytes(u).then(function (buf) { return buf || loop(); });
+                })();
+            }).then(function (buf) {
+                return loadPdfJs(pdfUrl).then(function (lib) {
+                    return lib.getDocument({ data: buf, withCredentials: true }).promise;
+                });
+            }).then(function (doc) {
+                st.pdf = doc; st.num = doc.numPages; st.leaves = Math.ceil(st.num / 2);
+                var saved = 0; try { saved = parseInt(localStorage.getItem(posKey) || '0', 10) || 0; } catch (e) {}
+                st.f = Math.max(0, Math.min(st.leaves, saved));
+                st.ready = true; st.loading = false;
+                status(''); renderSpread(); prefetch();
+            }).catch(function (err) {
+                st.loading = false;
+                try { console.error('[sonic-flip]', err); } catch (e) {}
+                status('Gagal memuat mode flip: ' + esc(err && err.message ? err.message : String(err)) +
+                    ' <button type="button" class="sonic-mini-btn" data-flip="retry"><i class="fas fa-redo"></i> Coba lagi</button>' +
+                    ' <button type="button" class="sonic-mini-btn" data-flip="std"><i class="fas fa-file-pdf"></i> Standar</button>', true);
+                if (!els.status.dataset.bound) {
+                    els.status.dataset.bound = '1';
+                    els.status.addEventListener('click', function (e) {
+                        var b = e.target.closest('[data-flip]'); if (!b) return;
+                        var act = b.getAttribute('data-flip');
+                        if (act === 'retry') { status(''); ensureBook(); }
+                        else if (act === 'std') setMode('std');
+                    });
+                }
+            });
+        }
+        function setMode(mode) {
+            st.mode = mode;
+            try { localStorage.setItem('sonicReaderMode', mode); } catch (e) {}
+            els.modes.forEach(function (b) { b.setAttribute('aria-pressed', String(b.getAttribute('data-mode') === mode)); });
+            els.flip.hidden = mode !== 'flip';
+            els.std.hidden = mode !== 'std';
+            if (mode === 'std') { if (els.frame.src === 'about:blank' || !els.frame.src) els.frame.src = href; }
+            else ensureBook();
+        }
+
+        els.modes.forEach(function (b) { b.addEventListener('click', function () { setMode(b.getAttribute('data-mode')); }); });
+        m.querySelector('.sonic-flip-toolbar').addEventListener('click', function (e) {
+            var b = e.target.closest('[data-flip]'); if (!b) return;
+            var act = b.getAttribute('data-flip');
+            if (act === 'next') flip(1);
+            else if (act === 'prev') flip(-1);
+            else if (act === 'first') jump(0);
+            else if (act === 'last') jump(st.leaves);
+            else if (act === 'zoomin') setZoom(st.zoom + 0.2);
+            else if (act === 'zoomout') setZoom(st.zoom - 0.2);
+            else if (act === 'full') toggleFull();
+            else if (act === 'std') setMode('std');
+        });
+        els.right.addEventListener('click', function () { flip(1); });
+        els.left.addEventListener('click', function () { flip(-1); });
+        var sx = 0, sy = 0, pid = null;
+        els.stage.addEventListener('pointerdown', function (e) { pid = e.pointerId; sx = e.clientX; sy = e.clientY; });
+        els.stage.addEventListener('pointerup', function (e) {
+            if (pid === null || e.pointerId !== pid) return; pid = null;
+            var dx = e.clientX - sx, dy = e.clientY - sy;
+            if (Math.abs(dx) > 48 && Math.abs(dx) > Math.abs(dy) * 1.4) flip(dx < 0 ? 1 : -1);
+        });
+        els.stage.addEventListener('pointercancel', function () { pid = null; });
+        document.addEventListener('keydown', function (e) {
+            if (!m.classList.contains('active') || st.mode !== 'flip') return;
+            if (e.key === 'ArrowRight') { e.preventDefault(); flip(1); }
+            else if (e.key === 'ArrowLeft') { e.preventDefault(); flip(-1); }
+            else if (e.key === 'Home') { e.preventDefault(); jump(0); }
+            else if (e.key === 'End') { e.preventDefault(); jump(st.leaves); }
+            else if (e.key === '+' || e.key === '=') setZoom(st.zoom + 0.2);
+            else if (e.key === '-') setZoom(st.zoom - 0.2);
+            else if (e.key === 'f' || e.key === 'F') toggleFull();
+        });
+        document.addEventListener('fullscreenchange', function () {
+            var b = m.querySelector('[data-flip="full"] i');
+            if (b) b.className = document.fullscreenElement ? 'fas fa-compress' : 'fas fa-expand';
+        });
+
+        var pref = 'flip'; try { pref = localStorage.getItem('sonicReaderMode') || 'flip'; } catch (e) {}
+        setMode(pref === 'std' ? 'std' : 'flip');
+    }
+
     function initReader() {
+        var deck = $('.sonic-attach-deck');
         $all('.sonic-attach-deck a').forEach(function (a) {
             var href = a.getAttribute('href') || ''; var txt = (a.textContent || '') + ' ' + href;
-            if (!/\.pdf|pdf/i.test(txt)) return; if (a.dataset.sonicRead) return; a.dataset.sonicRead = '1';
+            var isPdf = /\.pdf(\?|#|$)/i.test(txt) || /pdfjs|viewer\.html/i.test(href) ||
+                (/fstream/i.test(href) && !/\.(docx?|xlsx?|pptx?|zip|rar|7z|mp4|mp3|avi|jpg|jpeg|png|gif|epub|mobi)(\?|#|$)/i.test(txt));
+            if (!isPdf) return; if (a.dataset.sonicRead) return; a.dataset.sonicRead = '1';
             var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'sonic-mini-btn sonic-read-btn'; btn.innerHTML = '<i class="fas fa-book-open"></i> Baca';
-            btn.addEventListener('click', function (e) { e.preventDefault(); modal('sonicReaderModal', '<div class="sonic-reader-bar"><a class="sonic-mini-btn" href="' + esc(href) + '" target="_blank" rel="noopener"><i class="fas fa-external-link-alt"></i> Tab baru</a></div><iframe class="sonic-reader-frame" src="' + esc(href) + '" title="reader"></iframe>'); });
+            btn.addEventListener('click', function (e) { e.preventDefault(); openReader(href); });
             a.parentNode.insertBefore(btn, a.nextSibling);
         });
+        /* Intercept klik link PDF pada FASE CAPTURE — berjalan SEBELUM handler colorbox core,
+           sehingga link nama file membuka reader SONIC (flip/standar), bukan colorbox.
+           Lampiran non-PDF tidak disentuh (tidak punya dataset.sonicRead). */
+        if (deck && !deck.dataset.sonicFlipBind) {
+            deck.dataset.sonicFlipBind = '1';
+            deck.addEventListener('click', function (e) {
+                var a = e.target.closest ? e.target.closest('a') : null;
+                if (!a || !a.dataset.sonicRead) return;
+                e.preventDefault();
+                e.stopPropagation();
+                openReader(a.getAttribute('href') || '');
+            }, true);
+        }
     }
 
     function stars(n) { var s = ''; for (var i = 1; i <= 5; i++) s += '<i class="' + (i <= Math.round(n) ? 'fas' : 'far') + ' fa-star"></i>'; return s; }

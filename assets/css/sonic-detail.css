@@ -197,3 +197,50 @@
 .sonic-reader-bar{display:flex;justify-content:flex-end;margin-bottom:.6rem}
 .sonic-reader-frame{width:100%;height:70vh;border:1px solid var(--glass-border);border-radius:10px;background:#fff}
 .sonic-read-btn{margin-left:.5rem}
+
+/* ===== FLIPBOOK READER (Batch 7) — mode Standar tetap, Flip Buku tambahan ===== */
+.sonic-terminal-wide{max-width:min(1150px,96vw)}
+.sonic-terminal-wide .sonic-terminal-body{max-height:80vh;padding:1.2rem;scrollbar-width:thin;scrollbar-color:rgba(0,240,255,.45) rgba(255,255,255,.05)}
+.sonic-terminal-wide .sonic-terminal-body::-webkit-scrollbar{width:6px}
+.sonic-terminal-wide .sonic-terminal-body::-webkit-scrollbar-track{background:rgba(255,255,255,.05)}
+.sonic-terminal-wide .sonic-terminal-body::-webkit-scrollbar-thumb{background:rgba(0,240,255,.4);border-radius:3px}
+.sonic-terminal-wide .sonic-terminal-body::-webkit-scrollbar-thumb:hover{background:rgba(0,240,255,.7)}
+.sonic-reader-bar{display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap;margin-bottom:.6rem}
+.sonic-reader-modes{display:flex;gap:.4rem}
+.sonic-reader-mode[aria-pressed="true"]{background:linear-gradient(135deg,var(--sonic-neon),var(--sonic-electric));color:#001018;border-color:transparent;font-weight:700}
+.sonic-reader-flip{display:flex;flex-direction:column;gap:.6rem}
+.sonic-reader-flip[hidden],.sonic-reader-std[hidden]{display:none}
+.sonic-flip-toolbar{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.sonic-flip-indicator{font-family:'Orbitron',sans-serif;color:var(--sonic-neon);font-size:.78rem;letter-spacing:.08em;min-width:130px;text-align:center}
+.sonic-flip-progress{flex:1;height:6px;background:rgba(0,0,0,.4);border-radius:3px;overflow:hidden;min-width:80px}
+.sonic-flip-progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-plasma));transition:width .3s;box-shadow:0 0 10px rgba(0,240,255,.5)}
+.sonic-flip-stage{position:relative;height:min(62vh,640px);display:flex;perspective:2200px;background:radial-gradient(ellipse at center,rgba(0,240,255,.06),rgba(3,5,10,.9));border:1px solid var(--glass-border);border-radius:12px;overflow:hidden;touch-action:pan-y;user-select:none}
+.sonic-flip-stage:fullscreen{height:100vh;border-radius:0;background:#03050a}
+.sonic-flip-page{position:relative;width:50%;height:100%;display:flex;align-items:center;justify-content:center;background:#0b0f1a;cursor:pointer}
+.sonic-flip-page.left{border-right:1px solid rgba(0,0,0,.55)}
+.sonic-flip-page img{max-width:100%;max-height:100%;object-fit:contain;background:#fff;box-shadow:0 0 30px rgba(0,0,0,.6)}
+.sonic-flip-page .blank{color:var(--sonic-muted);font-size:.8rem}
+.sonic-flip-leaf{position:absolute;top:0;width:50%;height:100%;transform-style:preserve-3d;transition:transform .8s cubic-bezier(.4,.1,.2,1);z-index:5;pointer-events:none}
+.sonic-flip-leaf[hidden]{display:none}
+.sonic-flip-leaf.right{left:50%;transform-origin:left center}
+.sonic-flip-leaf.left{left:0;transform-origin:right center}
+.sonic-flip-leaf .face{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;display:flex;align-items:center;justify-content:center;background:#0b0f1a;overflow:hidden}
+.sonic-flip-leaf .face img{max-width:100%;max-height:100%;object-fit:contain;background:#fff}
+.sonic-flip-leaf .face.back{transform:rotateY(180deg)}
+.sonic-flip-leaf.right.go{transform:rotateY(-180deg)}
+.sonic-flip-leaf.left.go{transform:rotateY(180deg)}
+.sonic-flip-status{color:var(--sonic-muted);font-size:.8rem;min-height:1.2em;display:flex;gap:.5rem;align-items:center}
+@media (max-width:768px){
+.sonic-flip-stage{height:46vh}
+.sonic-flip-indicator{min-width:100px;font-size:.7rem}
+}
+@media (prefers-reduced-motion:reduce){
+.sonic-flip-leaf{transition:none}
+.sonic-flip-progress i{transition:none}
+}
+/* Zoom di wrapper dalam; stage = viewport ter-clip → toolbar tak pernah tertutup */
+.sonic-flip-stage{perspective:none;overflow:hidden}
+.sonic-flip-book{position:absolute;inset:0;display:flex;perspective:2200px;transform-style:preserve-3d;transform-origin:center center;transition:transform .25s cubic-bezier(.2,.7,.2,1);will-change:transform}
+.sonic-flip-leaf{will-change:transform}
+.sonic-flip-page img,.sonic-flip-leaf .face img{transform:translateZ(0);backface-visibility:hidden}
+@media (prefers-reduced-motion:reduce){.sonic-flip-book{transition:none}}

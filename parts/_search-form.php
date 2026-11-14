@@ -1,41 +1,93 @@
 <?php
-# @Filename: _search-form.php (SONIC — FINAL: slider stabil + WebP ringan)
+# @Filename: _search-form.php (SONIC — FINAL: slider stabil + WebP ringan + SLIDE VIDEO 30 dtk)
 $sonic_compact = !empty($sonic_compact_hero);
 
-/* ===== SLIDER SCANNER (WebP diprioritaskan, nama file di-escape) ===== */
+/* ===== SLIDER SCANNER HYBRID (foto + video, jumlah slide TANPA BATAS) =====
+ * Folder yang dipindai:
+ *   assets/video/          → semua video (mp4/m4v/webm/ogv)
+ *   assets/images/slider/  → semua foto & video
+ *   assets/images/         → hanya file bernama slide* (foto & video)
+ * Urutan slide = urutan natural nama file (slide1.jpg, slide2.mp4, slide3.webp, dst).
+ * Nama sama beda ekstensi → prioritas: mp4 > m4v > webm > ogv > webp > jpg > png > gif.
+ * Gambar bernama sama dengan video otomatis dipakai sebagai POSTER video.
+ */
 $slider_imgs = [];
 $slider_seen = [];
 $slider_dirs = [
+    __DIR__ . '/../assets/video'         => 'video/',
     __DIR__ . '/../assets/images/slider' => 'images/slider/',
     __DIR__ . '/../assets/images'        => 'images/',
 ];
-$slider_prio = ['webp' => 4, 'jpg' => 3, 'jpeg' => 3, 'png' => 2, 'gif' => 1];
+$slider_prio = ['mp4' => 8, 'm4v' => 7, 'webm' => 6, 'ogv' => 5, 'webp' => 4, 'jpg' => 3, 'jpeg' => 3, 'png' => 2, 'gif' => 1];
+$slider_video_ext = ['mp4', 'm4v', 'webm', 'ogv'];
 foreach ($slider_dirs as $dir => $prefix) {
     if (!is_dir($dir)) continue;
     $files = scandir($dir);
     if ($files === false) continue;
     foreach ($files as $sf) {
-        if (!preg_match('/\.(jpg|jpeg|png|webp|gif)$/i', $sf, $mm)) continue;
+        if (!preg_match('/\.(mp4|m4v|webm|ogv|jpg|jpeg|png|webp|gif)$/i', $sf, $mm)) continue;
         if ($prefix === 'images/' && !preg_match('/^slide/i', $sf)) continue;
-        $key = strtolower(preg_replace('/\.[^.]+$/', '', $sf));
-        $prio = $slider_prio[strtolower($mm[1])] ?? 0;
+        $ext  = strtolower($mm[1]);
+        $key  = strtolower(preg_replace('/\.[^.]+$/', '', $sf));
+        $prio = $slider_prio[$ext] ?? 0;
         if (isset($slider_seen[$key]) && $slider_seen[$key]['prio'] >= $prio) continue;
-        $slider_seen[$key] = ['prio' => $prio, 'item' => ['src' => assets($prefix . rawurlencode($sf)), 'name' => $sf]];
+        $slider_seen[$key] = ['prio' => $prio, 'item' => [
+            'src'    => assets($prefix . rawurlencode($sf)),
+            'name'   => $sf,
+            'type'   => in_array($ext, $slider_video_ext, true) ? 'video' : 'image',
+            'poster' => '',
+        ]];
     }
 }
+/* Poster otomatis: gambar bernama sama dengan video (di folder mana pun yang dipindai) */
+foreach ($slider_seen as &$slider_rec) {
+    if ($slider_rec['item']['type'] !== 'video') continue;
+    $slider_base = preg_replace('/\.[^.]+$/', '', $slider_rec['item']['name']);
+    foreach ($slider_dirs as $dir => $prefix) {
+        foreach (['webp', 'jpg', 'jpeg', 'png', 'gif'] as $pe) {
+            if (is_file($dir . '/' . $slider_base . '.' . $pe)) {
+                $slider_rec['item']['poster'] = assets($prefix . rawurlencode($slider_base . '.' . $pe));
+                break 2;
+            }
+        }
+    }
+}
+unset($slider_rec);
 foreach ($slider_seen as $s) $slider_imgs[] = $s['item'];
 usort($slider_imgs, function ($a, $b) { return strnatcasecmp($a['name'], $b['name']); });
 $sonic_slider_count = count($slider_imgs);
+$sonic_slider_has_video = false;
+foreach ($slider_imgs as $s) { if ($s['type'] === 'video') { $sonic_slider_has_video = true; break; } }
+
+/* Batas durasi video per slide: 30 detik (bisa dioverride lewat sysconf bila kelak didaftarkan) */
+$sonic_video_max = 30;
+if (!empty($sysconf['template']['sonic_video_max']) && (int)$sysconf['template']['sonic_video_max'] > 0) {
+    $sonic_video_max = (int)$sysconf['template']['sonic_video_max'];
+}
+$sonic_vm_label = floor($sonic_video_max / 60) . ':' . str_pad($sonic_video_max % 60, 2, '0', STR_PAD_LEFT);
 ?>
 
 <section class="sonic-hero<?= $sonic_compact ? ' compact' : '' ?>" id="sonicHero">
 
     <?php if (!$sonic_compact && $sonic_slider_count > 0): ?>
-    <!-- ===== FULLSCREEN PHOTO SLIDER (semua slide ber-background inline → selalu tampil) ===== -->
-    <link rel="preload" as="image" href="<?= htmlspecialchars($slider_imgs[0]['src'], ENT_QUOTES) ?>">
+    <!-- ===== FULLSCREEN HYBRID SLIDER (foto + video, semua slide tampil) ===== -->
+    <?php $sonic_first = $slider_imgs[0]; ?>
+    <?php if ($sonic_first['type'] === 'image'): ?>
+    <link rel="preload" as="image" href="<?= htmlspecialchars($sonic_first['src'], ENT_QUOTES) ?>">
+    <?php elseif ($sonic_first['poster'] !== ''): ?>
+    <link rel="preload" as="image" href="<?= htmlspecialchars($sonic_first['poster'], ENT_QUOTES) ?>">
+    <?php endif; ?>
     <div class="sonic-slider" id="sonicSlider">
         <?php foreach ($slider_imgs as $si => $s): $surl = htmlspecialchars($s['src'], ENT_QUOTES); ?>
-        <div class="sonic-slide<?= $si === 0 ? ' active' : '' ?>" style="background-image:url('<?= $surl ?>')"></div>
+            <?php if ($s['type'] === 'video'): ?>
+            <div class="sonic-slide sonic-slide-video<?= $si === 0 ? ' active' : '' ?>" data-type="video" data-duration="<?= (int)$sonic_video_max ?>">
+                <video src="<?= $surl ?>"<?= $s['poster'] !== '' ? ' poster="' . htmlspecialchars($s['poster'], ENT_QUOTES) . '"' : '' ?>
+                    muted playsinline disablepictureinpicture tabindex="-1" aria-hidden="true"
+                    preload="<?= $si === 0 ? 'auto' : 'metadata' ?>"></video>
+            </div>
+            <?php else: ?>
+            <div class="sonic-slide<?= $si === 0 ? ' active' : '' ?>" data-type="image" style="background-image:url('<?= $surl ?>')"></div>
+            <?php endif; ?>
         <?php endforeach; ?>
         <div class="sonic-slider-overlay"></div>
 
@@ -110,6 +162,11 @@ $sonic_slider_count = count($slider_imgs);
         <button type="button" class="sonic-slider-arrow next" id="sliderNext" aria-label="Next"><i class="fas fa-chevron-right"></i></button>
         <div class="sonic-slider-dots" id="sliderDots"></div>
         <?php endif; ?>
+
+        <?php if ($sonic_slider_has_video): ?>
+        <div class="sonic-slide-badge" id="sliderBadge" hidden><i class="fas fa-video"></i><span>VIDEO</span><b id="sliderBadgeTime"><?= htmlspecialchars($sonic_vm_label, ENT_QUOTES) ?></b></div>
+        <button type="button" class="sonic-slider-sound" id="sliderSound" aria-pressed="false" aria-label="Aktifkan suara video"><i class="fas fa-volume-mute"></i></button>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 
@@ -130,7 +187,16 @@ $sonic_slider_count = count($slider_imgs);
                            class="sonic-search-input"
                            placeholder="<?= __('Enter keyword to search collection...') ?>"/>
                     <div class="sonic-scanline"></div>
+                    <button type="button" class="sonic-voice-btn" id="sonicVoiceBtn" hidden
+                            title="<?= __('Search by voice') ?>" aria-label="<?= __('Search by voice') ?>" aria-pressed="false">
+                        <i class="fas fa-microphone"></i>
+                    </button>
                     <button type="submit" class="sonic-search-go" title="<?= __('Search') ?>"><i class="fas fa-bolt"></i></button>
+                </div>
+                <div class="sonic-voice-status" id="sonicVoiceStatus" hidden aria-live="polite">
+                    <span class="sonic-voice-wave" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span>
+                    <span class="sonic-voice-text" id="sonicVoiceText"></span>
+                    <button type="button" class="sonic-voice-cancel" id="sonicVoiceCancel"><?= __('Cancel') ?></button>
                 </div>
             </form>
 

@@ -1,29 +1,65 @@
-/* SONIC HERO — fullscreen slider, welcome walk, mesin pencari */
+/* ============================================================
+   SONIC HERO — FINAL (slider foto+video, welcome walk, mesin
+   pencari + voice search). Terintegrasi Batch 4 & Batch 5.
+   ============================================================ */
+
+/* ===== 1. BASE HERO & MODE COMPACT ===== */
 .sonic-hero{position:relative;padding:0;min-height:0;display:block;overflow:hidden;text-align:center}
 .sonic-hero.compact{min-height:0;padding:0}
-.sonic-hero.compact .sonic-slider,.sonic-hero.compact .sonic-hud,.sonic-hero.compact .sonic-slider-arrow,.sonic-hero.compact .sonic-slider-dots,.sonic-hero.compact .sonic-welcome-stage,.sonic-hero.compact .sonic-scroll-cue{display:none}
+.sonic-hero.compact .sonic-slider,
+.sonic-hero.compact .sonic-hud,
+.sonic-hero.compact .sonic-slider-arrow,
+.sonic-hero.compact .sonic-slider-dots,
+.sonic-hero.compact .sonic-welcome-stage,
+.sonic-hero.compact .sonic-scroll-cue{display:none}
 
-/* ===== FULLSCREEN SLIDER ===== */
+/* ===== 2. FULLSCREEN SLIDER (foto + video) ===== */
 .sonic-slider{position:relative;width:100%;height:100vh;min-height:600px;overflow:hidden;z-index:0}
 .sonic-slide{position:absolute;inset:0;background-size:cover;background-position:center;opacity:0;transform:scale(1.12);transition:opacity 1.4s ease,transform 7s linear}
 .sonic-slide.active{opacity:1;transform:scale(1)}
+/* Slide video: tanpa ken-burns, video cover penuh */
+.sonic-slide-video{background:#000;transform:none;transition:opacity 1.4s ease}
+.sonic-slide-video.active{transform:none}
+.sonic-slide-video video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center}
+.sonic-slide-failed{background-size:cover;background-position:center}
 .sonic-slider-overlay{position:absolute;inset:0;z-index:1;background:repeating-linear-gradient(0deg,rgba(0,240,255,.025) 0 1px,transparent 1px 4px),linear-gradient(180deg,rgba(3,5,10,.62) 0%,rgba(3,5,10,.30) 38%,rgba(3,5,10,.52) 72%,var(--sonic-bg) 100%)}
+
+/* Sudut HUD neon */
 .sonic-hud{position:absolute;width:56px;height:56px;border:2px solid rgba(0,240,255,.65);z-index:2;filter:drop-shadow(0 0 6px rgba(0,240,255,.6));pointer-events:none}
 .hud-tl{top:86px;left:22px;border-right:0;border-bottom:0}
 .hud-tr{top:86px;right:22px;border-left:0;border-bottom:0}
 .hud-bl{bottom:22px;left:22px;border-right:0;border-top:0}
 .hud-br{bottom:22px;right:22px;border-left:0;border-top:0}
-.sonic-slider-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:46px;height:46px;border-radius:50%;border:1px solid var(--glass-border);background:rgba(3,5,10,.55);color:var(--sonic-neon);cursor:pointer;backdrop-filter:blur(6px);transition:.3s}
+
+/* Panah navigasi (flex centering presisi) */
+.sonic-slider-arrow{position:absolute;top:50%;transform:translateY(-50%);z-index:3;width:46px;height:46px;border-radius:50%;border:1px solid var(--glass-border);background:rgba(3,5,10,.55);color:var(--sonic-neon);cursor:pointer;backdrop-filter:blur(6px);transition:.3s;display:flex;align-items:center;justify-content:center}
 .sonic-slider-arrow:hover{background:var(--sonic-neon);color:#001018;box-shadow:0 0 20px rgba(0,240,255,.6)}
-.sonic-slider-arrow.prev{left:26px}.sonic-slider-arrow.next{right:26px}
-.sonic-slider-dots{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:.5rem;z-index:3}
+.sonic-slider-arrow.prev{left:26px}
+.sonic-slider-arrow.next{right:26px}
+
+/* Dots (wrap bila slide banyak; video = magenta) */
+.sonic-slider-dots{position:absolute;bottom:26px;left:50%;transform:translateX(-50%);display:flex;gap:.5rem;z-index:3;max-width:min(72vw,640px);flex-wrap:wrap;justify-content:center}
 .sonic-dot-btn{width:26px;height:4px;border:0;border-radius:2px;background:rgba(255,255,255,.25);cursor:pointer;transition:.3s;padding:0}
 .sonic-dot-btn.active{background:var(--sonic-neon);box-shadow:0 0 10px var(--sonic-neon);width:40px}
+.sonic-dot-btn.is-video{background:rgba(255,0,170,.4)}
+.sonic-dot-btn.is-video.active{background:var(--sonic-plasma);box-shadow:0 0 10px var(--sonic-plasma)}
+
+/* Badge VIDEO + tombol suara slide */
+.sonic-slide-badge{position:absolute;left:26px;bottom:22px;z-index:3;display:inline-flex;align-items:center;gap:.5rem;padding:.45rem .9rem;border:1px solid rgba(255,0,170,.55);border-radius:6px;background:rgba(3,5,10,.6);backdrop-filter:blur(6px);color:#ffd1e8;font-family:'Orbitron',sans-serif;font-size:.72rem;letter-spacing:.18em}
+.sonic-slide-badge i{color:var(--sonic-plasma)}
+.sonic-slide-badge b{color:#fff;letter-spacing:.08em}
+.sonic-slide-badge[hidden]{display:none}
+.sonic-slider-sound{position:absolute;right:26px;bottom:22px;z-index:3;width:46px;height:46px;border-radius:50%;border:1px solid var(--glass-border);background:rgba(3,5,10,.55);color:var(--sonic-neon);cursor:pointer;backdrop-filter:blur(6px);transition:.3s;display:flex;align-items:center;justify-content:center}
+.sonic-slider-sound:hover{background:var(--sonic-neon);color:#001018;box-shadow:0 0 20px rgba(0,240,255,.6)}
+.sonic-slider-sound.on{border-color:var(--sonic-plasma);color:var(--sonic-plasma);box-shadow:0 0 16px rgba(255,0,170,.45)}
+.sonic-slider-sound:disabled{opacity:.35;cursor:not-allowed;box-shadow:none}
+
+/* Scroll cue */
 .sonic-scroll-cue{position:absolute;left:50%;bottom:58px;transform:translateX(-50%);z-index:3;color:var(--sonic-neon);font-size:1.35rem;opacity:.75;text-decoration:none;animation:sonicCue 1.9s ease-in-out infinite}
 .sonic-scroll-cue:hover{opacity:1}
 @keyframes sonicCue{0%,100%{transform:translate(-50%,0)}50%{transform:translate(-50%,9px)}}
 
-/* ===== WELCOME STAGE: siluet berjalan + teks ===== */
+/* ===== 3. WELCOME STAGE (teks + siluet berjalan) ===== */
 .sonic-welcome-stage{position:absolute;inset:0;z-index:2;pointer-events:none}
 .sonic-welcome-text{position:absolute;left:50%;top:32%;transform:translateX(-50%);margin:0;display:flex;flex-wrap:wrap;justify-content:center;gap:.5em .6em;width:max-content;max-width:92vw;font-family:'Orbitron',sans-serif;font-size:clamp(1rem,3.1vw,2.3rem);font-weight:800;letter-spacing:.16em}
 .sonic-welcome-word{opacity:0;background:linear-gradient(90deg,var(--sonic-neon) 0%,#ffffff 50%,var(--sonic-plasma) 100%);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;filter:drop-shadow(0 0 12px rgba(0,240,255,.45));animation:sonicWordIn 12s linear infinite;animation-delay:calc(var(--wi) * .7s)}
@@ -38,23 +74,27 @@
 .w-leg,.w-arm{animation-duration:1.2s;animation-timing-function:ease-in-out;animation-iteration-count:infinite}
 .w-leg{transform-origin:34px 62px}
 .w-arm{transform-origin:36px 32px}
-.w-leg-f{animation-name:sonicLegA}.w-leg-b{animation-name:sonicLegB}
-.w-arm-f{animation-name:sonicArmA}.w-arm-b{animation-name:sonicArmB}
+.w-leg-f{animation-name:sonicLegA}
+.w-leg-b{animation-name:sonicLegB}
+.w-arm-f{animation-name:sonicArmA}
+.w-arm-b{animation-name:sonicArmB}
 @keyframes sonicLegA{0%,100%{transform:rotate(22deg)}50%{transform:rotate(-20deg)}}
 @keyframes sonicLegB{0%,100%{transform:rotate(-20deg)}50%{transform:rotate(22deg)}}
 @keyframes sonicArmA{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(14deg)}}
 @keyframes sonicArmB{0%,100%{transform:rotate(14deg)}50%{transform:rotate(-16deg)}}
 
-/* ===== HERO CONTENT (di bawah slider) ===== */
+/* ===== 4. HERO CONTENT + MESIN PENCARI + VOICE ===== */
 .sonic-hero-content{position:relative;z-index:4;width:100%;padding:4.5rem 1.5rem 5rem}
 .sonic-hero-content:only-child{min-height:82vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:7rem 1.5rem 5rem}
 .sonic-hero.compact .sonic-hero-content{padding:2.2rem 1.5rem 3rem;min-height:0;display:block}
 .sonic-hero-title{font-family:'Orbitron',sans-serif;font-size:clamp(2rem,5vw,3.5rem);font-weight:900;margin-bottom:1rem;line-height:1.1}
-.sonic-hero-title .glow{background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-plasma),var(--sonic-neon));background-size:200% auto;-webkit-background-clip:text;-webkit-text-fill-color:transparent;animation:sonicShine 4s linear infinite}
+.sonic-hero-title .glow{background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-plasma),var(--sonic-neon));background-size:200% auto;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;animation:sonicShine 4s linear infinite}
 @keyframes sonicShine{to{background-position:200% center}}
 .sonic-bolt{color:var(--sonic-neon);filter:drop-shadow(0 0 12px var(--sonic-neon));margin-right:.4rem;animation:sonicBolt 2.2s infinite}
 @keyframes sonicBolt{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.15);opacity:.85}}
 .sonic-hero-sub{color:var(--sonic-muted);font-size:1.1rem;max-width:600px;margin:0 auto 3rem}
+
+/* Kartu pencarian */
 .sonic-search-card{background:var(--sonic-surface);backdrop-filter:blur(var(--glass-blur));border:1px solid var(--glass-border);border-radius:20px;padding:2rem;max-width:780px;margin:0 auto;box-shadow:0 20px 60px rgba(0,0,0,.5);position:relative}
 .sonic-search-card::before{content:'';position:absolute;inset:0;border-radius:20px;padding:1px;background:linear-gradient(135deg,var(--sonic-neon),transparent,var(--sonic-plasma));-webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);-webkit-mask-composite:xor;mask-composite:exclude;opacity:.5;pointer-events:none}
 .sonic-input-wrap{position:relative}
@@ -64,15 +104,41 @@
 .sonic-scanline{position:absolute;top:0;left:-100%;width:50%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,240,255,.3),transparent);border-radius:50px;pointer-events:none;opacity:0}
 .sonic-search-input:focus~.sonic-scanline{opacity:1;animation:sonicScan 1.5s linear infinite}
 @keyframes sonicScan{0%{left:-100%}100%{left:100%}}
-.sonic-input-icon{position:absolute;left:1.5rem;top:50%;transform:translateY(-50%);color:var(--sonic-neon);z-index:2}
+.sonic-input-icon{position:absolute;left:1.5rem;top:50%;transform:translateY(-50%);color:var(--sonic-neon);z-index:2;line-height:1}
 #sonic-keywords{padding-left:3.4rem;padding-right:4.2rem}
-.sonic-search-go{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--sonic-neon),var(--sonic-electric));color:#001018;cursor:pointer;box-shadow:0 0 18px rgba(0,240,255,.5);transition:.3s;z-index:2}
+.sonic-search-go{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--sonic-neon),var(--sonic-electric));color:#001018;cursor:pointer;box-shadow:0 0 18px rgba(0,240,255,.5);transition:.3s;z-index:2;display:flex;align-items:center;justify-content:center}
 .sonic-search-go:hover{transform:translateY(-50%) scale(1.08);box-shadow:0 0 30px rgba(0,240,255,.8)}
+
+/* Voice search (mic neon + waveform + status live) */
+.sonic-voice-btn{position:absolute;right:3.55rem;top:50%;transform:translateY(-50%);width:40px;height:40px;border-radius:50%;border:1px solid rgba(0,240,255,.45);background:rgba(0,240,255,.12);color:var(--sonic-neon);cursor:pointer;z-index:2;display:flex;align-items:center;justify-content:center;transition:.3s}
+.sonic-voice-btn[hidden]{display:none}
+.sonic-voice-btn:hover{background:rgba(0,240,255,.22);box-shadow:0 0 16px rgba(0,240,255,.45)}
+.sonic-voice-btn[aria-pressed="true"]{background:var(--sonic-plasma);border-color:var(--sonic-plasma);color:#fff;box-shadow:0 0 18px rgba(255,0,170,.6);animation:sonicVoicePulse 1.2s ease-in-out infinite}
+@keyframes sonicVoicePulse{0%,100%{box-shadow:0 0 0 0 rgba(255,0,170,.5)}50%{box-shadow:0 0 0 9px rgba(255,0,170,0)}}
+.sonic-voice-on #sonic-keywords{padding-right:6.9rem}
+.sonic-voice-status{display:flex;align-items:center;gap:.7rem;margin-top:.8rem;padding:.6rem .9rem;border:1px solid rgba(0,240,255,.35);border-radius:12px;background:rgba(0,240,255,.06);color:var(--sonic-text);font-size:.9rem}
+.sonic-voice-status[hidden]{display:none}
+.sonic-voice-status.err{border-color:rgba(255,77,109,.5);background:rgba(255,77,109,.08)}
+.sonic-voice-wave{display:inline-flex;gap:3px;align-items:flex-end;height:16px;flex:0 0 auto}
+.sonic-voice-wave i{width:3px;height:6px;border-radius:2px;background:linear-gradient(180deg,var(--sonic-neon),var(--sonic-plasma));animation:sonicWave 1s ease-in-out infinite}
+.sonic-voice-wave i:nth-child(2){animation-delay:.12s}
+.sonic-voice-wave i:nth-child(3){animation-delay:.24s}
+.sonic-voice-wave i:nth-child(4){animation-delay:.36s}
+.sonic-voice-wave i:nth-child(5){animation-delay:.48s}
+@keyframes sonicWave{0%,100%{height:5px}50%{height:16px}}
+.sonic-voice-status:not(.listening) .sonic-voice-wave i{animation:none;height:8px}
+.sonic-voice-text{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-voice-cancel{background:none;border:1px solid var(--glass-border);color:var(--sonic-muted);border-radius:8px;padding:.25rem .7rem;cursor:pointer;font-size:.78rem;flex:0 0 auto}
+.sonic-voice-cancel:hover{color:var(--sonic-plasma);border-color:var(--sonic-plasma)}
+
+/* Quick tags & recent */
 .sonic-quick-tags{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.5rem;justify-content:center}
 .sonic-recent{margin-top:1.2rem;text-align:left}
 .sonic-recent-label{color:var(--sonic-muted);font-size:.8rem;text-transform:uppercase;letter-spacing:1px;margin-bottom:.5rem}
 .sonic-recent-label i{margin-right:.4rem;color:var(--sonic-neon)}
 .sonic-recent-list{display:flex;flex-wrap:wrap;gap:.4rem}
+
+/* ===== 5. RESPONSIVE ===== */
 @media (max-width:900px){
 .sonic-slider{height:86vh;min-height:500px}
 .sonic-slider-arrow{display:none}
@@ -80,4 +146,22 @@
 .sonic-walker{width:56px;height:112px}
 .sonic-walk-track{height:115px;bottom:12%}
 .sonic-hero-content{padding:3.5rem 1rem 4rem}
+.sonic-slide-badge{left:14px;bottom:16px;font-size:.62rem;padding:.35rem .7rem}
+.sonic-slider-sound{right:14px;bottom:16px;width:40px;height:40px}
+.sonic-slider-dots{bottom:16px;max-width:56vw}
+}
+@media (max-width:600px){
+.sonic-voice-on #sonic-keywords{padding-right:6.4rem}
+.sonic-voice-btn{right:3.3rem;width:36px;height:36px}
+}
+
+/* ===== 6. REDUCED MOTION (konsolidasi, teks tetap terbaca) ===== */
+@media (prefers-reduced-motion:reduce){
+.sonic-slide,.sonic-slide-video{transition:opacity .4s ease;transform:none}
+.sonic-slide.active,.sonic-slide-video.active{transform:none}
+.sonic-welcome-word{animation:none;opacity:1;transform:none;filter:none}
+.sonic-walker{animation:none;display:none}
+.sonic-walker-svg,.w-leg,.w-arm{animation:none}
+.sonic-scroll-cue,.sonic-hero-title .glow,.sonic-bolt,.sonic-scanline{animation:none}
+.sonic-voice-btn[aria-pressed="true"],.sonic-voice-wave i{animation:none}
 }

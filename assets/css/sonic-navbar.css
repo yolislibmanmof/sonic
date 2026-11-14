@@ -1,17 +1,21 @@
-/* SONIC NAVBAR v4 — Priority+ overflow, single-line, anti-berantakan */
+/* SONIC NAVBAR v5 — Priority+ overflow, single-line, brand lebih besar & presisi */
 .sonic-progress{position:fixed;top:0;left:0;height:3px;width:0;z-index:1000;background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-plasma));box-shadow:0 0 12px var(--sonic-neon)}
-.sonic-navbar{position:sticky;top:0;padding:.7rem 1.5rem;z-index:900;background:rgba(3,5,10,.7);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--glass-border);transition:all .3s}
+.sonic-navbar{position:sticky;top:0;padding:.65rem 1.75rem;z-index:900;background:rgba(3,5,10,.7);backdrop-filter:blur(var(--glass-blur));-webkit-backdrop-filter:blur(var(--glass-blur));border-bottom:1px solid var(--glass-border);transition:all .3s}
 .sonic-navbar.scrolled{background:rgba(3,5,10,.95);box-shadow:0 10px 40px rgba(0,240,255,.15)}
-.sonic-navbar-inner{max-width:1400px;margin:0 auto;display:flex;align-items:center;gap:1rem;flex-wrap:nowrap;min-width:0}
-.sonic-brand{display:flex;align-items:center;gap:1rem;text-decoration:none;color:inherit;flex:0 1 auto;min-width:0}
-.sonic-brand img{height:42px;width:auto;flex:0 0 auto}
-.sonic-brand-badge{width:42px;height:42px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--sonic-neon),var(--sonic-electric));border-radius:12px;color:#001018;font-size:1.2rem;box-shadow:0 0 18px rgba(0,240,255,.55);flex:0 0 auto}
-.sonic-brand-text{min-width:0}
-.sonic-brand-text h1{font-family:'Orbitron',sans-serif;font-size:1.3rem;font-weight:900;margin:0;background:linear-gradient(90deg,var(--sonic-neon),#fff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sonic-brand-text h2{font-size:.75rem;color:var(--sonic-muted);margin:0;font-weight:400;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.sonic-nav{display:flex;align-items:center;gap:.35rem;list-style:none;margin:0;padding:0;margin-left:auto;flex:1 1 auto;min-width:0;flex-wrap:nowrap;justify-content:flex-end}
+.sonic-navbar-inner{max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:1.5rem;flex-wrap:nowrap;min-width:0}
+
+/* ===== BRAND: diperbesar agar ruang kosong terisi, tetap satu baris & ellipsis ===== */
+.sonic-brand{display:flex;align-items:center;gap:1.05rem;text-decoration:none;color:inherit;flex:0 1 auto;min-width:0}
+.sonic-brand img{height:52px;width:auto;flex:0 0 auto}
+.sonic-brand-badge{width:52px;height:52px;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,var(--sonic-neon),var(--sonic-electric));border-radius:14px;color:#001018;font-size:1.35rem;box-shadow:0 0 18px rgba(0,240,255,.55);flex:0 0 auto}
+.sonic-brand-text{min-width:0;display:flex;flex-direction:column;justify-content:center}
+.sonic-brand-text h1{font-family:'Orbitron',sans-serif;font-size:1.6rem;font-weight:900;margin:0;line-height:1.15;background:linear-gradient(90deg,var(--sonic-neon),#fff);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;letter-spacing:2.5px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-brand-text h2{font-size:.9rem;color:var(--sonic-muted);margin:2px 0 0;font-weight:400;line-height:1.2;letter-spacing:.3px;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* ===== NAV: kanan, rapat, presisi ===== */
+.sonic-nav{display:flex;align-items:center;gap:.4rem;list-style:none;margin:0;padding:0;margin-left:auto;flex:1 1 auto;min-width:0;flex-wrap:nowrap;justify-content:flex-end}
 .sonic-nav>li{flex:0 0 auto}
-.sonic-nav a{color:var(--sonic-text);text-decoration:none;font-weight:600;font-size:.92rem;padding:.5rem .9rem;border-radius:8px;position:relative;transition:.3s;display:inline-flex;align-items:center;white-space:nowrap;max-width:210px}
+.sonic-nav a{color:var(--sonic-text);text-decoration:none;font-weight:600;font-size:.92rem;padding:.5rem .95rem;border-radius:8px;position:relative;transition:.3s;display:inline-flex;align-items:center;white-space:nowrap;max-width:210px}
 .sonic-nav a:hover,.sonic-nav li.active>a{color:var(--sonic-neon);background:rgba(0,240,255,.08)}
 .sonic-nav a::after{content:'';position:absolute;bottom:2px;left:50%;width:0;height:2px;background:var(--sonic-neon);transition:all .3s;transform:translateX(-50%)}
 .sonic-nav a:hover::after,.sonic-nav li.active>a::after{width:60%}
@@ -26,6 +30,11 @@
 .sonic-nav .dropdown-item{color:var(--sonic-text)}
 .sonic-nav .dropdown-item:hover{background:rgba(0,240,255,.1);color:var(--sonic-neon)}
 .sonic-nav .dropdown-header{color:var(--sonic-muted)}
+
+/* Klaster aksesibilitas & bahasa: sejajar tengah, jarak konsisten */
+.sonic-nav .sonic-a11y-bar{display:inline-flex;align-items:center;gap:.4rem;margin-left:.35rem}
+.sonic-nav .sonic-nav-protected{display:flex;align-items:center}
+
 /* Priority+ "Lainnya" dropdown */
 .sonic-nav-more{position:relative}
 .sonic-nav-more>a{max-width:none}
@@ -34,13 +43,23 @@
 .sonic-nav-more .dropdown-menu a{display:flex;align-items:center;gap:.5rem;max-width:none;padding:.5rem .9rem;border-radius:8px;color:var(--sonic-text)}
 .sonic-nav-more .dropdown-menu a .sonic-nav-label{max-width:240px}
 .sonic-nav-more .dropdown-menu a:hover,.sonic-nav-more .dropdown-menu li.active>a{background:rgba(0,240,255,.1);color:var(--sonic-neon)}
+
+/* ===== MOBILE: menu menempel presisi di bawah navbar (top:100%, tanpa angka ajaib) ===== */
 @media (max-width:900px){
+.sonic-navbar{padding:.6rem 1rem}
+.sonic-navbar-inner{gap:.9rem}
+.sonic-brand{gap:.8rem}
+.sonic-brand img{height:44px}
+.sonic-brand-badge{width:44px;height:44px;font-size:1.15rem;border-radius:12px}
+.sonic-brand-text h1{font-size:1.3rem;letter-spacing:2px;max-width:220px}
+.sonic-brand-text h2{font-size:.78rem;max-width:220px}
 .sonic-burger{display:block}
-.sonic-nav{position:fixed;inset:64px 0 auto 0;background:rgba(3,5,10,.97);backdrop-filter:blur(20px);flex-direction:column;padding:1.2rem;gap:.4rem;display:none;border-bottom:1px solid var(--glass-border);margin-left:0;flex-wrap:wrap;overflow-y:auto;max-height:calc(100vh - 64px)}
+.sonic-nav{position:absolute;top:100%;left:0;right:0;background:rgba(3,5,10,.97);backdrop-filter:blur(20px);flex-direction:column;padding:1.2rem;gap:.4rem;display:none;border-bottom:1px solid var(--glass-border);margin-left:0;flex-wrap:wrap;overflow-y:auto;max-height:72vh}
 .sonic-nav.open{display:flex}
 .sonic-nav a{display:flex;width:100%;text-align:center;justify-content:center;max-width:none}
 .sonic-nav-label{max-width:none}
 .sonic-nav-more{display:none!important}
+.sonic-nav .sonic-a11y-bar{margin-left:0;justify-content:center;width:100%}
 }
 
 /* ===== Extra-menu group dropdown (10+ menu tetap rapi) ===== */
