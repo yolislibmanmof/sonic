@@ -1,21 +1,27 @@
 <?php
-# @Filename: _navbar.php (SONIC — FINAL)
+# @Filename: _navbar.php (SONIC — FINAL: navbar lega, Informasi+Berita+Statistik di dropdown Lainnya)
 
+/* Menu utama dipangkas agar navbar lega (Informasi & Berita pindah ke "Lainnya") */
 $main_menus = [
     'home'      => ['text' => __('Home'),        'url' => 'index.php',                      'icon' => 'fas fa-home',        'p' => ''],
     'profil'    => ['text' => sonic_t('Library Profile'), 'url' => 'index.php?p=libinfo&sec=profil', 'icon' => 'fas fa-landmark', 'p' => 'libinfo', 'sec' => 'profil'],
-    'libinfo'   => ['text' => __('Information'), 'url' => 'index.php?p=libinfo',            'icon' => 'fas fa-info-circle', 'p' => 'libinfo', 'sec' => ''],
-    'news'      => ['text' => __('News'),        'url' => 'index.php?p=news',               'icon' => 'fas fa-newspaper',   'p' => 'news'],
     'librarian' => ['text' => __('Librarian'),   'url' => 'index.php?p=librarian',          'icon' => 'fas fa-user-shield', 'p' => 'librarian'],
 ];
 
-/* ===== Extra menus dari Kustomisasi ===== */
+$cur_p = $_GET['p'] ?? '';
+$cur_s = $_GET['sec'] ?? '';
+
+/* ===== Extra menus (dropdown "Lainnya") ===== */
 $sonic_extra_menus = [];
 $_sonic_icon_map = [
     'services'=>'fas fa-concierge-bell','journals'=>'fas fa-book-open','libinfo'=>'fas fa-info-circle',
     'news'=>'fas fa-newspaper','help'=>'fas fa-question-circle','librarian'=>'fas fa-user-shield',
-    'member'=>'fas fa-user-astronaut','visitor'=>'fas fa-clipboard-user',
+    'member'=>'fas fa-user-astronaut','visitor'=>'fas fa-clipboard-user','stats'=>'fas fa-chart-line',
 ];
+/* Informasi & Berita masuk dropdown (sec '' = halaman libinfo umum, bukan profil) */
+$sonic_extra_menus[] = ['text' => __('Information'), 'url' => 'index.php?p=libinfo', 'icon' => 'fas fa-info-circle', 'p' => 'libinfo', 'sec' => ''];
+$sonic_extra_menus[] = ['text' => __('News'),        'url' => 'index.php?p=news',    'icon' => 'fas fa-newspaper',   'p' => 'news'];
+
 foreach (preg_split('/\r\n|\r|\n|,/', (string)($sysconf['template']['sonic_extra_menus'] ?? '')) as $_line) {
     $_line = trim($_line);
     if ($_line === '') continue;
@@ -32,25 +38,28 @@ foreach (preg_split('/\r\n|\r|\n|,/', (string)($sysconf['template']['sonic_extra
     }
     $sonic_extra_menus[] = ['text'=>$_lb, 'url'=>$_url, 'icon'=>$_sonic_icon_map[$_p] ?? 'fas fa-link', 'p'=>$_p];
 }
-$sonic_extra_menus = array_merge([
-    ['text' => __('Help'), 'url' => 'index.php?p=help', 'icon' => 'fas fa-question-circle', 'p' => 'help'],
-], $sonic_extra_menus);
-
-$sonic_group_label = $sysconf['template']['sonic_extra_menu_label'] ?? __('More');
-$sonic_group_active = '';
-foreach ($sonic_extra_menus as $em) {
-    if (isset($_GET['p']) && $em['p'] !== '' && $em['p'] === $_GET['p']) { $sonic_group_active = 'active'; break; }
+$sonic_extra_menus[] = ['text' => __('Help'), 'url' => 'index.php?p=help', 'icon' => 'fas fa-question-circle', 'p' => 'help'];
+if (!empty($sonic_stats_on)) {
+    $sonic_extra_menus[] = ['text' => sonic_t('Statistics'), 'url' => 'index.php?stats=1', 'icon' => 'fas fa-chart-line', 'p' => 'stats', 'is_stats' => true];
 }
 
-$cur_p = $_GET['p'] ?? '';
-$cur_s = $_GET['sec'] ?? '';
+/* Deteksi aktif untuk item dropdown (dukung sec & stats) */
+$sonic_extra_active = function ($em) use ($cur_p, $cur_s) {
+    if (!empty($em['is_stats'])) return isset($_GET['stats']);
+    if (($em['p'] ?? '') === '') return false;
+    if ($cur_p !== $em['p']) return false;
+    if (array_key_exists('sec', $em)) return $cur_s === $em['sec'];
+    return true;
+};
+$sonic_group_label = $sysconf['template']['sonic_extra_menu_label'] ?? __('More');
+$sonic_group_active = '';
+foreach ($sonic_extra_menus as $em) { if ($sonic_extra_active($em)) { $sonic_group_active = 'active'; break; } }
 ?>
 <div class="sonic-progress" id="sonicProgress"></div>
 
 <nav class="sonic-navbar" id="sonicNavbar">
     <div class="sonic-navbar-inner">
         <a class="sonic-brand" href="index.php">
-            <span class="sonic-brand-badge"><i class="fas fa-bolt"></i></span>
             <?php
             if(isset($sysconf['logo_image']) && $sysconf['logo_image'] != '' && $imagesDisk->isExists($path = 'default/'.$sysconf['logo_image'])){
                 echo '<img src="'.SWB . 'lib/minigalnano/createthumb.php?filename=images/' . $path.'&width=350" alt="logo">';
@@ -87,9 +96,7 @@ $cur_s = $_GET['sec'] ?? '';
                 <i class="fas fa-layer-group"></i><span class="sonic-nav-label"><?= htmlspecialchars(sonic_t($sonic_group_label)) ?></span><i class="fas fa-chevron-down sonic-caret"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-right sonic-group-menu" aria-labelledby="sonicExtraMenuBtn">
-                    <?php foreach ($sonic_extra_menus as $em):
-                        $em_active = (isset($_GET['p']) && $em['p'] !== '' && $em['p'] === $_GET['p']) ? 'active' : '';
-                    ?>
+                    <?php foreach ($sonic_extra_menus as $em): $em_active = $sonic_extra_active($em) ? 'active' : ''; ?>
                     <a class="dropdown-item <?= $em_active ?>" href="<?= htmlspecialchars($em['url']) ?>" title="<?= htmlspecialchars($em['text']) ?>">
                         <i class="<?= $em['icon'] ?>"></i><span class="sonic-nav-label"><?= htmlspecialchars($em['text']) ?></span>
                     </a>
@@ -123,11 +130,19 @@ $cur_s = $_GET['sec'] ?? '';
                 </li>
             <?php endif; ?>
 
+            <?php if (!empty($sonic_a11y_on)): ?>
+            <li class="sonic-nav-protected sonic-a11y-bar">
+                <button type="button" class="sonic-a11y-btn" id="sonicThemeBtn" aria-label="<?= __('Toggle color theme') ?>" title="<?= __('Theme: auto/dark/light') ?>"><i class="fas fa-adjust"></i></button>
+                <button type="button" class="sonic-a11y-btn" id="sonicFontMinus" aria-label="<?= __('Decrease font size') ?>">A−</button>
+                <button type="button" class="sonic-a11y-btn" id="sonicFontReset" aria-label="<?= __('Reset font size') ?>">A</button>
+                <button type="button" class="sonic-a11y-btn" id="sonicFontPlus" aria-label="<?= __('Increase font size') ?>">A+</button>
+            </li>
+            <?php endif; ?>
+
             <?php
             $langstr = '';
             $current_lang = ['name' => 'EN', 'code' => 'en'];
             $select_lang = $_COOKIE['select_lang'] ?? $sysconf['default_lang'];
-            // Baca query string ASLI (filter_input), fallback ke $_SERVER yang sudah di-stripslashes.
             $sonic_raw_qs = filter_input(INPUT_SERVER, 'QUERY_STRING', FILTER_UNSAFE_RAW);
             if (!is_string($sonic_raw_qs) || $sonic_raw_qs === '') $sonic_raw_qs = stripslashes((string)($_SERVER['QUERY_STRING'] ?? ''));
             $sonic_lang_qs = [];

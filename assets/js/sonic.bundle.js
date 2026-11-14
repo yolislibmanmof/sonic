@@ -1,4 +1,4 @@
-/* SONIC bundle — generated 2026-11-12T02:18:47+00:00 */
+/* SONIC bundle — generated 2026-11-14T00:59:10+00:00 */
 
 ;/* --- app_jquery.js --- */
 /**
@@ -509,11 +509,13 @@ document.addEventListener('DOMContentLoaded', function () {
 
 ;/* --- sonic-facet.js --- */
 /**
- * SONIC FACET — Fase 2: multi-select + sort, satu kontrak `filter` JSON (core).
+ * SONIC FACET — Fase 2 + BATCH 5: multi-select + sort + YEAR-RANGE SLIDER.
+ * Satu kontrak `filter` JSON (core). Slider menulis filter.years="dari;sampai"
+ * → DefaultEngine core: publish_year BETWEEN ? AND ? (kontrak terverifikasi v9.8.0).
  */
 jQuery(function ($) {
     'use strict';
-    var FIELDS = ['title', 'author', 'subject', 'isbn', 'callnumber', 'publishyear'];
+    var FIELDS = ['title', 'author', 'subject', 'isbn', 'callnumber', 'publishyear', 'years'];
     var MULTI = ['gmd', 'location', 'colltype'];
 
     function readState() {
@@ -543,6 +545,35 @@ jQuery(function ($) {
         return 'index.php?' + p.toString();
     }
 
+    /* ===== BATCH 5: year-range slider (ion.rangeSlider sudah dimuat di header) ===== */
+    var $yr = $('#sonicYearRange');
+    var yrMin = 0, yrMax = 0;
+    function sliderYears() {
+        if (!$yr.length) return '';
+        var inst = $yr.data('ionRangeSlider');
+        if (!inst) return '';
+        var r = inst.result;
+        return (r.from > yrMin || r.to < yrMax) ? (r.from + ';' + r.to) : '';
+    }
+    function initYearSlider(st) {
+        if (!$yr.length) return;
+        yrMin = parseInt($yr.attr('data-min'), 10) || 0;
+        yrMax = parseInt($yr.attr('data-max'), 10) || 0;
+        if (!(yrMax > yrMin) || !$.fn.ionRangeSlider) { $yr.closest('.sonic-facet-group').hide(); return; }
+        var from = yrMin, to = yrMax;
+        var m = /^(\d{1,4});(\d{1,4})$/.exec(st.years || '');
+        if (m) {
+            from = Math.max(yrMin, Math.min(yrMax, parseInt(m[1], 10)));
+            to = Math.max(yrMin, Math.min(yrMax, parseInt(m[2], 10)));
+            if (from > to) { from = yrMin; to = yrMax; }
+        }
+        $yr.ionRangeSlider({
+            type: 'double', min: yrMin, max: yrMax, from: from, to: to,
+            grid: true, grid_num: 4, hide_min_max: true,
+            onFinish: function () { apply(); }
+        });
+    }
+
     function collect() {
         var s = readState();
         $('#sonicFacetForm input[type="checkbox"]').each(function () {
@@ -554,6 +585,7 @@ jQuery(function ($) {
         });
         var py = $('#sonicFacetForm input[name="publishyear"]').val();
         s.publishyear = (py || '').trim();
+        s.years = sliderYears();
         var sort = $('#sonicSort').val();
         s.sort = sort || '';
         return s;
@@ -571,6 +603,7 @@ jQuery(function ($) {
     });
     $('#sonicFacetForm input[name="publishyear"]').val(st.publishyear);
     if ($('#sonicSort').length) $('#sonicSort').val(st.sort);
+    initYearSlider(st);
 
     // Interaksi
     $(document).on('change', '#sonicFacetForm input[type="checkbox"]', function () {
@@ -589,7 +622,8 @@ jQuery(function ($) {
 ;/* --- sonic-member.js --- */
 /**
  * SONIC MEMBER — count-up statistik + tilt holografik + cinematic member login
- * (konsolidasi: tidak ada file JS login terpisah)
+ * + BATCH 6: kartu digital ber-QR, target baca tahunan, wishlist→reservasi 1 klik.
+ * (konsolidasi: tidak ada file JS login terpisah; semua fitur lama dipertahankan)
  */
 jQuery(function ($) {
     'use strict';
@@ -617,6 +651,29 @@ jQuery(function ($) {
         });
         card.addEventListener('mouseleave', function () { card.style.transform = ''; });
     }
+
+    /* ===== BATCH 6: WISHLIST → RESERVASI 1 KLIK (kontrak basket core) ===== */
+    $(document).on('click', '.sonic-wish-reserve', function (e) {
+        e.preventDefault();
+        var $b = $(this); if ($b.data('busy')) return; $b.data('busy', true);
+        var id = $b.attr('data-biblio');
+        $.post('index.php?p=member', { biblio: [id], callback: 'json' })
+            .done(function (data) {
+                if (typeof data === 'string') {
+                    try { data = JSON.parse(data); }
+                    catch (err) { window.location = 'index.php?p=member&destination=' + encodeURIComponent(window.location.href); return; }
+                }
+                if (data && data.status) {
+                    if (window.toastr) toastr.success(data.message || 'Ditambahkan ke basket');
+                    // langsung ke halaman reservasi core (basket)
+                    window.location = 'index.php?p=member&sec=title_basket';
+                } else {
+                    if (window.toastr) toastr.error((data && data.message) || 'Gagal menambahkan ke basket');
+                    $b.data('busy', false);
+                }
+            })
+            .fail(function () { if (window.toastr) toastr.error('Gagal menambahkan ke basket'); $b.data('busy', false); });
+    });
 });
 
 /* ===== CINEMATIC MEMBER LOGIN (MISI 4) — hanya aktif di halaman login member ===== */
@@ -672,6 +729,80 @@ jQuery(function ($) {
             });
         }
     });
+})();
+
+/* ===== BATCH 6: KARTU DIGITAL ber-QR + TARGET BACA TAHUNAN ===== */
+(function () {
+    'use strict';
+
+    /* Kartu digital: QR dari lib qrcode lokal (Batch 4). Fallback: tampilkan ID teks. */
+    function initCardQr() {
+        var card = document.getElementById('sonicHoloCard'); if (!card) return;
+        var id = card.getAttribute('data-member-id'); if (!id) return;
+        var name = card.getAttribute('data-member-name') || '';
+        var qrCell = document.getElementById('sonicHoloQr');
+        var btn = document.getElementById('sonicCardQrBtn');
+        function makeQr(cellSize) {
+            if (typeof window.qrcode !== 'function') return null;
+            try { var qr = window.qrcode(0, 'M'); qr.addData(id); qr.make(); return qr.createSvgTag(cellSize, 1); }
+            catch (e) { return null; }
+        }
+        if (qrCell) { var svg = makeQr(3); if (svg) qrCell.innerHTML = svg; else qrCell.textContent = id; }
+        function openModal() {
+            var m = document.getElementById('sonicCardQrModal');
+            if (!m) {
+                m = document.createElement('div'); m.id = 'sonicCardQrModal'; m.className = 'sonic-qr-modal';
+                m.innerHTML = '<div class="sonic-qr-modal-card"><button type="button" class="sonic-qr-modal-close" data-close>&times;</button>' +
+                    '<div class="sonic-qr-modal-title"></div><div class="sonic-qr-modal-qr"></div>' +
+                    '<div class="sonic-qr-modal-id"></div><div class="sonic-qr-modal-hint"></div></div>';
+                document.body.appendChild(m);
+                m.addEventListener('click', function (e) { if (e.target === m || e.target.hasAttribute('data-close')) m.classList.remove('show'); });
+                document.addEventListener('keydown', function (e) { if (e.key === 'Escape') m.classList.remove('show'); });
+            }
+            m.querySelector('.sonic-qr-modal-title').textContent = name || 'Kartu Anggota';
+            var big = makeQr(6);
+            m.querySelector('.sonic-qr-modal-qr').innerHTML = big || ('<span class="sonic-qr-modal-fallback"></span>');
+            if (!big) m.querySelector('.sonic-qr-modal-fallback').textContent = id;
+            m.querySelector('.sonic-qr-modal-id').textContent = id;
+            m.querySelector('.sonic-qr-modal-hint').textContent = big
+                ? 'Scan QR ini di kiosk untuk check-in'
+                : 'Lib QR belum dimuat (jalankan php tools/fetch_qr.php). Tunjukkan ID ini ke petugas.';
+            m.classList.add('show');
+        }
+        if (btn) btn.addEventListener('click', openModal);
+        if (qrCell) qrCell.addEventListener('click', openModal);
+    }
+
+    /* Target baca tahunan: progress dari data sirkulasi, target disimpan di perangkat (per anggota). */
+    function initGoal() {
+        var quest = document.getElementById('sonicReadingQuest'); if (!quest) return;
+        var mid = quest.getAttribute('data-member-id') || 'guest';
+        var done = parseInt(quest.getAttribute('data-year-count'), 10) || 0;
+        var key = 'sonicReadingGoal_' + mid;
+        var target = 12;
+        try { var s = localStorage.getItem(key); if (s) { var v = parseInt(s, 10); if (v >= 1 && v <= 365) target = v; } } catch (e) {}
+        var input = document.getElementById('sonicQuestInput');
+        var targetEl = document.getElementById('sonicQuestTarget');
+        var doneEl = document.getElementById('sonicQuestDone');
+        var fill = document.getElementById('sonicQuestFill');
+        function paint() {
+            if (targetEl) targetEl.textContent = target;
+            if (doneEl) doneEl.textContent = done;
+            if (fill) fill.style.width = Math.min(100, Math.round(done / target * 100)) + '%';
+            if (input) input.value = target;
+        }
+        paint();
+        if (input) input.addEventListener('change', function () {
+            var v = parseInt(input.value, 10);
+            if (!(v >= 1 && v <= 365)) { input.value = target; return; }
+            target = v; try { localStorage.setItem(key, String(target)); } catch (e) {}
+            paint();
+        });
+    }
+
+    function init() { initCardQr(); initGoal(); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
 })();
 
 ;/* --- sonic-footer.js --- */
@@ -1228,11 +1359,11 @@ jQuery(function($) {
 
 ;/* --- sonic-detail.js --- */
 /**
- * SONIC OPAC — Detail Record Revolution (FINAL — BATCH 1)
+ * SONIC OPAC — Detail Record Revolution (FINAL — BATCH 4)
  * Modul 1: 3D Book, Tabs, Citations+Export, Cover, Micro-interactions.
  * Modul 2 (Fase 3): Zoom, QR, Reader, Copy Call, Reviews.
- * Patch: token ulasan (new_token), guard respons, reset bintang, anti double-submit,
- *        toast timer, clipboard fallback, ESC modal, hook QR lokal (Batch 3).
+ * BATCH 4: token ulasan rotasi Tahan form.reset() (fix submit ke-2 = 403),
+ *          selector token tanpa hash hardcode, guard respons JSON, QR lokal otomatis.
  */
 (function () {
     'use strict';
@@ -1358,7 +1489,7 @@ jQuery(function($) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
-/* ===== MODUL 2 — FASE 3: Zoom, QR, Reader, Copy Call, Reviews (FINAL BATCH 1) ===== */
+/* ===== MODUL 2 — FASE 3: Zoom, QR, Reader, Copy Call, Reviews (BATCH 4) ===== */
 (function () {
     'use strict';
     function $(s, c) { return (c || document).querySelector(s); }
@@ -1395,8 +1526,8 @@ jQuery(function($) {
         b.addEventListener('click', function () {
             var url = b.getAttribute('data-url') || window.location.href;
             var html = null;
-            /* Hook QR lokal: aktif otomatis bila lib qrcode-generator (Batch 3) tersedia.
-               Sebelum itu, fallback persis perilaku lama (api.qrserver.com). */
+            /* QR lokal otomatis bila assets/plugin/qrcode/qrcode.min.js dimuat (lihat patch footer + tools/fetch_qr.php).
+               Tanpa itu, fallback online tetap berfungsi persis seperti sebelumnya. */
             if (typeof window.qrcode === 'function') {
                 try {
                     var qr = window.qrcode(0, 'M'); qr.addData(url); qr.make();
@@ -1426,12 +1557,19 @@ jQuery(function($) {
 
     function stars(n) { var s = ''; for (var i = 1; i <= 5; i++) s += '<i class="' + (i <= Math.round(n) ? 'fas' : 'far') + ' fa-star"></i>'; return s; }
 
+    /* BATCH 4: cari field token tanpa hash hardcode; dukung nama apa pun dari server. */
+    function findTokenField(form, name) {
+        if (name) { var byName = form.querySelector('input[name="' + name + '"]'); if (byName) return byName; }
+        return form.querySelector('input[type="hidden"][name^="_csrf_token_"]') || form.querySelector('input[type="hidden"][name="csrf_token"]');
+    }
+
     function initReviews() {
         var root = $('.sonic-detail-revolution'); if (!root) return;
         var id = root.getAttribute('data-biblio-id');
         var sum = $('#sonicRatingSummary'), list = $('#sonicReviewList');
         function load() {
             fetch(base() + 'api/review.php?biblio_id=' + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d || typeof d !== 'object') return;
                 var avg = Number(d.avg) || 0, count = Number(d.count) || 0;
                 if (sum) sum.innerHTML = '<span class="sonic-stars">' + stars(avg) + '</span> <b>' + avg + '</b> / 5 · ' + count + ' ulasan';
                 var items = Array.isArray(d.items) ? d.items : [];
@@ -1452,13 +1590,18 @@ jQuery(function($) {
             if (sb) sb.disabled = true;
             var fd = new FormData(form);
             fetch(base() + 'api/review.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
-                /* FIX F-2: Volnix me-rotasi token setelah validasi — sinkronkan token baru ke form */
-                if (d.new_token) {
-                    var t = form.querySelector('input[name="' + (d.token_name || '_csrf_token_645a83a41868941e4692aa31e7235f2') + '"]');
-                    if (t) t.value = d.new_token;
-                }
+                if (!d || typeof d !== 'object') { toast('Respons tidak valid'); return; }
+                /* FIX BATCH 4: setAttribute ikut memperbarui defaultValue, sehingga form.reset()
+                   TIDAK membuang token rotasi → ulasan ke-2/ketiga tetap lolos CSRF. */
+                var tokenEl = findTokenField(form, d.token_name);
+                if (d.new_token && tokenEl) { tokenEl.setAttribute('value', d.new_token); tokenEl.value = d.new_token; }
                 toast(d.message || 'Tersimpan');
-                if (d.status) { form.reset(); if (ratingInput) ratingInput.value = 5; paintStars(5); load(); }
+                if (d.status) {
+                    form.reset();
+                    if (d.new_token && tokenEl) tokenEl.value = d.new_token; // jaga-jaga pasca reset
+                    if (ratingInput) ratingInput.value = 5;
+                    paintStars(5); load();
+                }
             }).catch(function () { toast('Gagal mengirim ulasan'); }).then(function () { if (sb) sb.disabled = false; });
         });
     }
@@ -1469,30 +1612,34 @@ jQuery(function($) {
 
 ;/* --- sonic-suggest.js --- */
 /**
- * SONIC OPAC — Smart Autocomplete (Search Experience Upgrade, Fase A)
- * Dropdown saran hidup: judul / pengarang / subjek.
- * Keyboard: ArrowUp/Down navigasi, Enter pilih, Esc tutup.
+ * SONIC OPAC — Smart Autocomplete (BATCH 5: instant search kaya hasil)
+ * Dropdown kini menampilkan COVER + JUDUL + PENGARANG + TAHUN untuk item judul;
+ * klik item judul → langsung ke halaman detail. Baris "lihat semua hasil" tetap
+ * menjalankan pencarian penuh (perilaku lama dipertahankan). Author/subjek tetap
+ * mengisi input + submit seperti sebelumnya. ARIA combobox (Batch 4) dipertahankan.
  */
 (function () {
     'use strict';
 
-    /* Endpoint ditemukan otomatis dari URL stylesheet sonic-base.css */
     function findEndpoint() {
+        if (window.SONIC_CFG && window.SONIC_CFG.base) return window.SONIC_CFG.base + 'api/suggest.php';
         var link = document.querySelector('link[href*="sonic-base.css"]');
         if (link) return link.href.replace(/assets\/css\/sonic-base\.css.*$/, '') + 'api/suggest.php';
         return 'template/sonic/api/suggest.php';
     }
     var ENDPOINT = findEndpoint();
+    var RICH = !(window.SONIC_CFG && window.SONIC_CFG.discovery && window.SONIC_CFG.discovery.rich === false);
 
     var ICONS = { title: 'fa-book', author: 'fa-user-edit', subject: 'fa-tags' };
     var _tagAuthor = document.querySelector('[data-search-mode="author"]');
-    var _isId = _tagAuthor ? /pengarang/i.test(_tagAuthor.textContent) : false;
+    var _isId = _tagAuthor ? /pengarang/i.test(_tagAuthor.textContent) : !!(window.SONIC_CFG && window.SONIC_CFG.lang === 'id');
     var LABEL = _isId
         ? { title: 'Judul', author: 'Pengarang', subject: 'Subjek' }
         : { title: 'Title', author: 'Author', subject: 'Subject' };
+    var ALL_LABEL = _isId ? 'Lihat semua hasil untuk' : 'See all results for';
     var MODE  = { title: 'keywords', author: 'author', subject: 'subject' };
 
-    function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
 
     function highlight(label, q) {
         var safe = escapeHtml(label);
@@ -1504,6 +1651,7 @@ jQuery(function($) {
         return before + '<mark>' + match + '</mark>' + after;
     }
 
+    var uid = 0;
     function attach(input) {
         if (!input || input.dataset.sonicSuggest) return;
         input.dataset.sonicSuggest = '1';
@@ -1511,11 +1659,18 @@ jQuery(function($) {
         var wrap = input.closest('.sonic-input-wrap') || input.closest('.sonic-search-box') || input.parentElement;
         var box = document.createElement('div');
         box.className = 'sonic-suggest';
+        box.id = 'sonicSuggestList' + (++uid);
+        box.setAttribute('role', 'listbox');
         wrap.appendChild(box);
+
+        input.setAttribute('role', 'combobox');
+        input.setAttribute('aria-autocomplete', 'list');
+        input.setAttribute('aria-expanded', 'false');
+        input.setAttribute('aria-controls', box.id);
 
         var items = [], sel = -1, ctrl = null, timer = null;
 
-        function close() { box.classList.remove('open', 'loading'); sel = -1; items = []; }
+        function close() { box.classList.remove('open', 'loading'); sel = -1; items = []; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); }
 
         function render(q) {
             if (!items.length) { close(); return; }
@@ -1523,19 +1678,51 @@ jQuery(function($) {
             items.forEach(function (it, i) {
                 var el = document.createElement('div');
                 el.className = 'sonic-suggest-item' + (i === sel ? ' sel' : '');
-                el.innerHTML = '<i class="fas ' + (ICONS[it.t] || 'fa-book') + '"></i>' +
-                               '<span class="s-label">' + highlight(it.v, q) + '</span>' +
-                               '<span class="s-type">' + LABEL[it.t] + '</span>';
+                el.id = box.id + '-opt' + i;
+                el.setAttribute('role', 'option');
+                el.setAttribute('aria-selected', i === sel ? 'true' : 'false');
+                if (RICH && it.t === 'title' && it.id) {
+                    el.classList.add('rich');
+                    var meta = [it.author || '', it.year || ''].filter(Boolean).join(' · ');
+                    var cover = it.cover
+                        ? '<img class="s-cover" src="' + escapeHtml(it.cover) + '" alt="" loading="lazy" onerror="this.style.visibility=\'hidden\'">'
+                        : '<i class="fas fa-book s-cover-fallback"></i>';
+                    el.innerHTML = cover +
+                        '<span class="s-body"><span class="s-label">' + highlight(it.v, q) + '</span>' +
+                        (meta ? '<span class="s-meta">' + escapeHtml(meta) + '</span>' : '') + '</span>' +
+                        '<span class="s-type">' + LABEL.title + '</span>';
+                } else {
+                    el.innerHTML = '<i class="fas ' + (ICONS[it.t] || 'fa-book') + '"></i>' +
+                                   '<span class="s-label">' + highlight(it.v, q) + '</span>' +
+                                   '<span class="s-type">' + (LABEL[it.t] || '') + '</span>';
+                }
                 el.addEventListener('mousedown', function (e) { e.preventDefault(); pick(it); });
                 box.appendChild(el);
             });
+            /* Baris "lihat semua hasil" — mempertahankan jalur pencarian lama */
+            var all = document.createElement('div');
+            all.className = 'sonic-suggest-all';
+            all.innerHTML = '<i class="fas fa-bolt"></i> ' + ALL_LABEL + ' &ldquo;' + escapeHtml(q) + '&rdquo;';
+            all.addEventListener('mousedown', function (e) {
+                e.preventDefault(); close();
+                var form = input.closest('form'); if (form) form.submit();
+            });
+            box.appendChild(all);
             box.classList.add('open');
+            input.setAttribute('aria-expanded', 'true');
+            if (sel >= 0) input.setAttribute('aria-activedescendant', box.id + '-opt' + sel);
+            else input.removeAttribute('aria-activedescendant');
         }
 
         function pick(it) {
+            /* BATCH 5: judul dengan id → langsung ke detail (instant search) */
+            if (RICH && it.t === 'title' && it.id) {
+                close();
+                window.location.href = 'index.php?p=show_detail&id=' + encodeURIComponent(it.id);
+                return;
+            }
             input.value = it.v;
             input.name = MODE[it.t] || 'keywords';
-            /* sinkronkan chip mode di hero bila ada */
             var tags = document.querySelectorAll('[data-search-mode]');
             if (tags.length) {
                 tags.forEach(function (b) { b.classList.toggle('active', b.getAttribute('data-search-mode') === input.name); });
@@ -1596,14 +1783,15 @@ jQuery(function($) {
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
 
-    console.log('%c🔮 SONIC Smart Autocomplete: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
+    if (window.SONIC_DEBUG) console.log('%c🔮 SONIC Smart Autocomplete (rich): ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
 })();
 
 ;/* --- sonic-result.js --- */
 /**
- * SONIC OPAC — Search Experience (Fase 2 FINAL)
- * Summary bar, stagger, empty-state, clear per grup facet, badge jumlah,
- * saved searches, ekspor RSS/JSON-LD/XML. Sort ditangani sonic-facet.js.
+ * SONIC OPAC — Search Experience (Fase 2 FINAL — BATCH 4)
+ * BATCH 4: base URL dari SONIC_CFG (bundle/rename-safe), i18n ID/EN,
+ *          badge facet jujur (tooltip + disembunyikan saat query aktif),
+ *          console hanya saat SONIC_DEBUG. Semua fitur lama dipertahankan.
  */
 (function () {
     'use strict';
@@ -1612,6 +1800,7 @@ jQuery(function($) {
     function qsa(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
     function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     function findBase() {
+        if (window.SONIC_CFG && window.SONIC_CFG.base) return window.SONIC_CFG.base;
         var link = document.querySelector('link[href*="sonic-base.css"]');
         return link ? link.href.replace(/assets\/css\/sonic-base\.css.*$/, '') : 'template/sonic/';
     }
@@ -1619,6 +1808,10 @@ jQuery(function($) {
         try { return JSON.parse(new URLSearchParams(window.location.search).get('filter') || '{}') || {}; }
         catch (e) { return {}; }
     }
+    var IS_ID = !!(window.SONIC_CFG && window.SONIC_CFG.lang === 'id');
+    var L = IS_ID
+        ? { noRes: 'Tidak ada hasil', noResDesc: 'Kami tidak menemukan koleksi yang cocok dengan pencarian Anda', tryOther: 'Coba kata kunci lain atau kurangi filter.', reset: 'Reset Filter', home: 'Kembali ke Beranda', total: 'total hasil', onPage: 'hasil di halaman ini', savedEmpty: 'Belum ada pencarian tersimpan.', savedOk: 'Pencarian disimpan', savedDefault: 'Pencarian tersimpan', remove: 'Hapus', clearGroup: 'Hapus filter grup ini', facetGlobal: 'Jumlah total di seluruh katalog (bukan hanya hasil pencarian ini)' }
+        : { noRes: 'No results found', noResDesc: 'We couldn\'t find any collection matching your query', tryOther: 'Try different keywords or remove some filters.', reset: 'Reset Filters', home: 'Back to Home', total: 'total results', onPage: 'on this page', savedEmpty: 'No saved searches yet.', savedOk: 'Search saved', savedDefault: 'Saved search', remove: 'Remove', clearGroup: 'Remove this filter', facetGlobal: 'Total across the whole catalog (not just this search)' };
 
     function emptyStateHTML(qLabels) {
         return '<div class="sonic-empty">' +
@@ -1626,9 +1819,9 @@ jQuery(function($) {
             '<g class="float" stroke="#00f0ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M40 120 Q70 105 100 118 Q130 105 160 120 L160 62 Q130 50 100 62 Q70 50 40 62 Z"/><path d="M100 62 L100 118"/></g>' +
             '<g stroke="#ff00aa" stroke-width="4" stroke-linecap="round"><circle cx="100" cy="86" r="34"/><path d="M125 111 L152 138"/></g>' +
             '<line class="scan" x1="74" y1="86" x2="126" y2="86" stroke="#00f0ff" stroke-width="2"/></svg>' +
-            '<h3>No results found</h3>' +
-            '<p>We couldn\'t find any collection matching your query' + (qLabels.length ? ' for <strong style="color:var(--sonic-neon)">' + esc(qLabels.join(' · ')) + '</strong>' : '') + '. Try different keywords or remove some filters.</p>' +
-            '<div class="sonic-empty-actions"><a class="sonic-btn" href="index.php?search=search"><i class="fas fa-undo"></i> Reset Filters</a><a class="sonic-btn-outline" href="index.php"><i class="fas fa-home"></i> Back to Home</a></div></div>';
+            '<h3>' + L.noRes + '</h3>' +
+            '<p>' + L.noResDesc + (qLabels.length ? ' <strong style="color:var(--sonic-neon)">' + esc(qLabels.join(' · ')) + '</strong>' : '') + '. ' + L.tryOther + '</p>' +
+            '<div class="sonic-empty-actions"><a class="sonic-btn" href="index.php?search=search"><i class="fas fa-undo"></i> ' + L.reset + '</a><a class="sonic-btn-outline" href="index.php"><i class="fas fa-home"></i> ' + L.home + '</a></div></div>';
     }
 
     /* ===== Saved searches (localStorage) ===== */
@@ -1638,10 +1831,10 @@ jQuery(function($) {
     function renderSaved() {
         var list = qs('#sonicSavedList'); if (!list) return;
         var arr = loadSaved(); list.innerHTML = '';
-        if (!arr.length) { list.innerHTML = '<p class="sonic-saved-empty">Belum ada pencarian tersimpan.</p>'; return; }
+        if (!arr.length) { list.innerHTML = '<p class="sonic-saved-empty">' + L.savedEmpty + '</p>'; return; }
         arr.forEach(function (it, i) {
             var row = document.createElement('div'); row.className = 'sonic-saved-item';
-            row.innerHTML = '<a href="' + esc(it.url) + '"><i class="fas fa-search"></i>' + esc(it.label) + '</a><button type="button" data-i="' + i + '" class="sonic-facet-clear" title="Hapus">&times;</button>';
+            row.innerHTML = '<a href="' + esc(it.url) + '"><i class="fas fa-search"></i>' + esc(it.label) + '</a><button type="button" data-i="' + i + '" class="sonic-facet-clear" title="' + L.remove + '">&times;</button>';
             list.appendChild(row);
         });
     }
@@ -1649,10 +1842,10 @@ jQuery(function($) {
         var btn = qs('#sonicSaveSearch'), panel = qs('#sonicSavedPanel'), close = qs('#sonicSavedClose'), list = qs('#sonicSavedList');
         if (btn) btn.addEventListener('click', function () {
             var arr = loadSaved();
-            var label = (new URLSearchParams(window.location.search).get('keywords') || 'Pencarian tersimpan');
+            var label = (new URLSearchParams(window.location.search).get('keywords') || L.savedDefault);
             arr.unshift({ url: window.location.href, label: label, ts: Date.now() });
             storeSaved(arr); renderSaved(); if (panel) panel.style.display = 'block';
-            if (window.toastr) toastr.success('Pencarian disimpan');
+            if (window.toastr) toastr.success(L.savedOk);
         });
         if (close) close.addEventListener('click', function () { if (panel) panel.style.display = 'none'; });
         if (list) list.addEventListener('click', function (e) {
@@ -1694,7 +1887,8 @@ jQuery(function($) {
             var total = null; var foundStrong = qs('.search-found-info strong');
             if (foundStrong) { var n = parseInt(foundStrong.textContent.replace(/[^\d]/g, ''), 10); if (!isNaN(n)) total = n; }
             var bar = document.createElement('div'); bar.className = 'sonic-result-bar';
-            bar.innerHTML = '<span><i class="fas fa-bolt"></i> <b>' + (total !== null ? total : cards.length) + '</b> ' + (total !== null ? 'total results' : 'result' + (cards.length === 1 ? '' : 's') + ' on this page') + '</span>' +
+            var countLabel = total !== null ? L.total : (IS_ID ? L.onPage : ('result' + (cards.length === 1 ? '' : 's') + ' ' + L.onPage));
+            bar.innerHTML = '<span><i class="fas fa-bolt"></i> <b>' + (total !== null ? total : cards.length) + '</b> ' + countLabel + '</span>' +
                 (qLabels.length ? '<span class="sonic-result-q"><i class="fas fa-search"></i> ' + esc(qLabels.join(' · ')) + '</span>' : '');
             var toolbar = main.querySelector('.sonic-result-toolbar');
             if (toolbar) toolbar.insertAdjacentElement('afterend', bar); else main.insertBefore(bar, main.firstChild);
@@ -1710,39 +1904,46 @@ jQuery(function($) {
             g.classList.add('active');
             var label = g.querySelector('label'); if (!label) return;
             var clr = document.createElement('button');
-            clr.type = 'button'; clr.className = 'sonic-facet-clear'; clr.title = 'Remove this filter'; clr.innerHTML = '&times;';
+            clr.type = 'button'; clr.className = 'sonic-facet-clear'; clr.title = L.clearGroup; clr.innerHTML = '&times;';
             clr.addEventListener('click', function () {
                 boxes.forEach(function (b) { b.checked = false; var w = b.closest('.sonic-facet-check'); if (w) w.classList.remove('on'); });
-                // Picu satu change agar sonic-facet.js membangun ulang URL (satu kali navigasi).
                 boxes[0].dispatchEvent(new Event('change', { bubbles: true }));
             });
             label.appendChild(clr);
         });
 
-        /* ===== 3. BADGE JUMLAH OPSI FACET ===== */
-        fetch(findBase() + 'api/facet-counts.php', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                qsa('.sonic-facet-count').forEach(function (el) {
-                    var f = el.getAttribute('data-facet'), v = el.getAttribute('data-value');
-                    var map = data[f] || {};
-                    if (map[v] != null) el.textContent = map[v];
-                });
-            })
-            .catch(function () { /* silent */ });
+        /* ===== 3. BADGE JUMLAH OPSI FACET (jujur: global vs query aktif) ===== */
+        var queryActive = !!params.get('keywords') || Object.keys(filter).some(function (k) { return k !== 'sort' && filter[k] && (!Array.isArray(filter[k]) || filter[k].length); });
+        var countEls = qsa('.sonic-facet-count');
+        countEls.forEach(function (el) { el.title = L.facetGlobal; });
+        if (!queryActive) {
+            fetch(findBase() + 'api/facet-counts.php', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    countEls.forEach(function (el) {
+                        var f = el.getAttribute('data-facet'), v = el.getAttribute('data-value');
+                        var map = data[f] || {};
+                        if (map[v] != null) el.textContent = map[v];
+                    });
+                })
+                .catch(function () { /* silent */ });
+        } else {
+            countEls.forEach(function (el) { el.textContent = ''; });
+        }
 
         initSaved();
         initExport();
     });
 
-    console.log('%c🎛 SONIC Search Experience Fase 2: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
+    if (window.SONIC_DEBUG) console.log('%c🎛 SONIC Search Experience: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
 })();
 
 ;/* --- sonic-premium.js --- */
 /**
- * SONIC PREMIUM — Batch 3 FINAL (additif, tanpa dependensi baru)
- * 1) Terakhir Dilihat (client-side) — rail snap + navigasi + tanggal lokal
- * 2) Mungkin maksud Anda… (did-you-mean via api/suggest.php saat hasil kosong)
+ * SONIC PREMIUM — Batch 3 + BATCH 5 (additif, tanpa dependensi baru)
+ * 1) Terakhir Dilihat (client-side) — rail snap + navigasi + tanggal lokal (TETAP)
+ * 2) Mungkin maksud Anda… — BATCH 5: fuzzy via api/discovery.php (index_words bawaan 9.8),
+ *    fallback otomatis ke suggest.php (perilaku lama) bila index kosong / endpoint gagal.
  * Tidak mengubah fitur lama; semua di-guard try/catch.
  */
 (function () {
@@ -1751,6 +1952,7 @@ jQuery(function($) {
     var LANG = (window.SONIC_CFG && window.SONIC_CFG.lang) || (document.documentElement.lang || 'en');
     var IS_ID = /^id/i.test(String(LANG));
     var DYM_LABEL = IS_ID ? 'Mungkin maksud Anda' : 'Did you mean';
+    var DYM_ON = !(window.SONIC_CFG && window.SONIC_CFG.discovery && window.SONIC_CFG.discovery.dym === false);
 
     function base() {
         if (window.SONIC_CFG && window.SONIC_CFG.base) return window.SONIC_CFG.base;
@@ -1808,7 +2010,6 @@ jQuery(function($) {
             grid.innerHTML = ''; sec.style.display = 'none';
         });
 
-        /* Navigasi rail (hanya muncul bila memang bisa discroll) */
         var sub = sec.querySelector('.sonic-section-sub');
         if (sub && !sub.querySelector('.sonic-viewed-nav')) {
             var nav = document.createElement('span'); nav.className = 'sonic-viewed-nav';
@@ -1833,40 +2034,230 @@ jQuery(function($) {
         }
     }
 
-    /* ===== 2. Did-you-mean saat hasil kosong ===== */
-    function didYouMean() {
+    /* ===== 2. Did-you-mean (BATCH 5: fuzzy dulu, fallback lama) ===== */
+    function renderDYM(sugg, kw) {
         var main = document.querySelector('.sonic-result-main'); if (!main) return;
-        var kw = (new URLSearchParams(location.search).get('keywords') || '').trim();
-        if (!kw) return;
-        var hasCards = main.querySelector('.sonic-book, .sonic-list-card');
-        var empty = main.querySelector('.sonic-empty');
-        if (hasCards && !empty) return;
         if (document.getElementById('sonicDYM')) return;
+        var seen = {}, clean = [];
+        (sugg || []).forEach(function (v) {
+            v = String(v || '').trim(); var k = v.toLowerCase();
+            if (!v || k === kw.toLowerCase() || seen[k]) return;
+            seen[k] = 1; clean.push(v);
+        });
+        if (!clean.length) return;
+        var box = document.createElement('div');
+        box.id = 'sonicDYM'; box.className = 'sonic-dym';
+        var html = '<span class="sonic-dym-label"><i class="fas fa-lightbulb"></i> ' + esc(DYM_LABEL) + ': </span>';
+        clean.slice(0, 5).forEach(function (v) {
+            html += '<a class="sonic-tag sonic-dym-chip" href="index.php?keywords=' + encodeURIComponent(v) + '&search=search">' + esc(v) + '</a>';
+        });
+        box.innerHTML = html;
+        main.insertBefore(box, main.firstChild);
+    }
+
+    function legacyDYM(kw) {
+        /* Perilaku Batch 3 dipertahankan utuh sebagai fallback */
         fetch(base() + 'api/suggest.php?q=' + encodeURIComponent(kw), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 var items = Array.isArray(data) ? data : [];
-                var seen = {}, sugg = [];
-                items.forEach(function (it) {
-                    if (it.t !== 'title') return;
-                    var v = (it.v || '').trim(), k = v.toLowerCase();
-                    if (!v || k === kw.toLowerCase() || seen[k]) return;
-                    seen[k] = 1; sugg.push(v);
-                });
-                if (!sugg.length) return;
-                var box = document.createElement('div');
-                box.id = 'sonicDYM'; box.className = 'sonic-dym';
-                var html = '<span class="sonic-dym-label"><i class="fas fa-lightbulb"></i> ' + esc(DYM_LABEL) + ': </span>';
-                sugg.slice(0, 5).forEach(function (v) {
-                    html += '<a class="sonic-tag sonic-dym-chip" href="index.php?keywords=' + encodeURIComponent(v) + '&search=search">' + esc(v) + '</a>';
-                });
-                box.innerHTML = html;
-                main.insertBefore(box, main.firstChild);
+                var sugg = [];
+                items.forEach(function (it) { if (it.t === 'title') sugg.push(it.v); });
+                renderDYM(sugg, kw);
             })
             .catch(function () {});
+    }
+
+    function didYouMean() {
+        var main = document.querySelector('.sonic-result-main'); if (!main) return;
+        var kw = (new URLSearchParams(location.search).get('keywords') || '').trim();
+        if (!kw || !DYM_ON) return;
+        var hasCards = main.querySelector('.sonic-book, .sonic-list-card');
+        var empty = main.querySelector('.sonic-empty');
+        if (hasCards && !empty) return;
+        if (document.getElementById('sonicDYM')) return;
+        fetch(base() + 'api/discovery.php?action=dym&q=' + encodeURIComponent(kw), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                var sugg = (d && Array.isArray(d.suggestions)) ? d.suggestions : [];
+                if (sugg.length) renderDYM(sugg, kw);
+                else legacyDYM(kw);
+            })
+            .catch(function () { legacyDYM(kw); });
     }
 
     function init() { recordView(); renderViewed(); didYouMean(); }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
     else init();
+})();
+
+;/* --- sonic-discovery.js --- */
+/**
+ * SONIC DISCOVERY — BATCH 5 (additif)
+ * Halaman detail:
+ *   1) Virtual Shelf — "buku di sebelah rak ini" (tetangga call number, buku kini di tengah)
+ *   2) Co-loan — "Peminjam buku ini juga meminjam…" (agregat anonim dari data sirkulasi)
+ * Data dari api/discovery.php (cache server). Semua di-guard; tanpa data → seksi tidak muncul.
+ * Toggle Kustomisasi dihormati via SONIC_CFG.discovery.
+ */
+(function () {
+    'use strict';
+    var CFG = window.SONIC_CFG || {};
+    var D = CFG.discovery || {};
+    var IS_ID = /^id/i.test(String(CFG.lang || document.documentElement.lang || 'en'));
+
+    function base() {
+        if (CFG.base) return CFG.base;
+        var l = document.querySelector('link[href*="sonic-base.css"]');
+        return l ? l.href.replace(/assets\/css\/sonic-base\.css.*$/, '') : 'template/sonic/';
+    }
+    function esc(s) { var d = document.createElement('div'); d.textContent = s == null ? '' : String(s); return d.innerHTML; }
+    function detailUrl(id) { return 'index.php?p=show_detail&id=' + encodeURIComponent(id); }
+
+    function card(b, extraClass, badge) {
+        var el = document.createElement(b.id ? 'a' : 'div');
+        el.className = 'sonic-book' + (extraClass ? ' ' + extraClass : '');
+        if (b.id) el.href = detailUrl(b.id);
+        var cover = b.cover || './images/default/image.png';
+        var meta = b.call_number ? b.call_number : (b.author || b.year || '');
+        el.innerHTML = '<div class="sonic-book-cover"><img loading="lazy" src="' + esc(cover) + '" alt="' + esc(b.title) + '" onerror="this.src=\'./images/default/image.png\'">' +
+            (badge ? '<span class="sonic-rail-badge">' + badge + '</span>' : '') + '</div>' +
+            '<h4 class="sonic-book-title">' + esc(b.title) + '</h4>' +
+            '<p class="sonic-book-author">' + esc(meta) + '</p>';
+        return el;
+    }
+
+    function section(id, icon, title, sub) {
+        var sec = document.createElement('div');
+        sec.className = 'sonic-discovery-section'; sec.id = id;
+        sec.innerHTML = '<h5><i class="fas ' + icon + '"></i> ' + esc(title) + '</h5>' +
+            (sub ? '<p class="sonic-discovery-sub">' + sub + '</p>' : '');
+        return sec;
+    }
+
+    function railWrap(rail, labelPrev, labelNext) {
+        var wrap = document.createElement('div'); wrap.className = 'sonic-rail-wrap';
+        var nav = document.createElement('div'); nav.className = 'sonic-rail-nav';
+        function mk(icon, label) {
+            var b = document.createElement('button');
+            b.type = 'button'; b.className = 'sonic-mini-btn'; b.setAttribute('aria-label', label);
+            b.innerHTML = '<i class="fas ' + icon + '"></i>';
+            return b;
+        }
+        var prev = mk('fa-chevron-left', labelPrev), next = mk('fa-chevron-right', labelNext);
+        prev.addEventListener('click', function () { rail.scrollBy({ left: -260, behavior: 'smooth' }); });
+        next.addEventListener('click', function () { rail.scrollBy({ left: 260, behavior: 'smooth' }); });
+        nav.appendChild(prev); nav.appendChild(next);
+        wrap.appendChild(nav); wrap.appendChild(rail);
+        function upd() {
+            var max = rail.scrollWidth - rail.clientWidth;
+            nav.style.display = max > 4 ? 'flex' : 'none';
+        }
+        rail.addEventListener('scroll', upd, { passive: true });
+        window.addEventListener('resize', upd);
+        setTimeout(upd, 60);
+        return wrap;
+    }
+
+    /* ===== 1. Virtual Shelf ===== */
+    function initShelf(root, id) {
+        if (D.shelf === false) return;
+        fetch(base() + 'api/discovery.php?action=shelf&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                if (!d || !d.current) return;
+                var before = Array.isArray(d.before) ? d.before : [];
+                var after = Array.isArray(d.after) ? d.after : [];
+                if (!before.length && !after.length) return;
+                var main = root.querySelector('.sonic-detail-main') || root;
+                var title = IS_ID ? 'Virtual Shelf — buku di sebelah rak ini' : 'Virtual Shelf — books next to this one';
+                var sub = (IS_ID ? 'Urut nomor panggil di rak: ' : 'Shelf order by call number: ') + '<b>' + esc(d.key || '') + '</b>';
+                var sec = section('sonicShelf', 'fa-book-reader', title, sub);
+                var rail = document.createElement('div'); rail.className = 'sonic-rail';
+                before.forEach(function (b) { rail.appendChild(card(b)); });
+                var cur = card(d.current, 'current', '<i class="fas fa-eye"></i> ' + (IS_ID ? 'Sedang dilihat' : 'Viewing'));
+                rail.appendChild(cur);
+                after.forEach(function (b) { rail.appendChild(card(b)); });
+                sec.appendChild(railWrap(rail, IS_ID ? 'Geser kiri' : 'Scroll left', IS_ID ? 'Geser kanan' : 'Scroll right'));
+                if (d.prefix) {
+                    var more = document.createElement('a');
+                    more.className = 'sonic-mini-btn sonic-shelf-more';
+                    more.href = 'index.php?search=search&filter=' + encodeURIComponent(JSON.stringify({ callnumber: d.prefix }));
+                    more.innerHTML = '<i class="fas fa-compass"></i> ' + (IS_ID ? 'Jelajahi rak ini' : 'Browse this shelf');
+                    sec.appendChild(more);
+                }
+                main.appendChild(sec);
+                /* Posisikan buku kini di tengah rail — tanpa menggeser halaman */
+                setTimeout(function () {
+                    rail.scrollLeft = Math.max(0, cur.offsetLeft - (rail.clientWidth / 2) + (cur.offsetWidth / 2));
+                }, 80);
+            })
+            .catch(function () {});
+    }
+
+    /* ===== 2. Co-loan ===== */
+    function initColoan(root, id) {
+        if (D.coloan === false) return;
+        fetch(base() + 'api/discovery.php?action=coloan&id=' + encodeURIComponent(id), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (items) {
+                if (!Array.isArray(items) || !items.length) return;
+                var main = root.querySelector('.sonic-detail-main') || root;
+                var title = IS_ID ? 'Peminjam buku ini juga meminjam…' : 'Borrowers of this book also borrowed…';
+                var sub = IS_ID ? 'Rekomendasi dari pola sirkulasi — anonim, tanpa data pribadi' : 'Recommendations from circulation patterns — anonymous, no personal data';
+                var sec = section('sonicColoan', 'fa-users', title, esc(sub));
+                var rail = document.createElement('div'); rail.className = 'sonic-rail';
+                items.forEach(function (b) {
+                    var badge = '<i class="fas fa-user-friends"></i> ×' + (parseInt(b.score, 10) || 0);
+                    rail.appendChild(card(b, '', badge));
+                });
+                sec.appendChild(railWrap(rail, IS_ID ? 'Geser kiri' : 'Scroll left', IS_ID ? 'Geser kanan' : 'Scroll right'));
+                main.appendChild(sec);
+            })
+            .catch(function () {});
+    }
+
+    function init() {
+        var root = document.querySelector('.sonic-detail-revolution');
+        if (!root) return;
+        var id = root.getAttribute('data-biblio-id');
+        if (!id) return;
+        try { initShelf(root, id); } catch (e) {}
+        try { initColoan(root, id); } catch (e) {}
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+
+    if (window.SONIC_DEBUG) console.log('%c🧭 SONIC Discovery (shelf + co-loan): ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
+})();
+
+;/* --- sonic-platform.js --- */
+/** SONIC PLATFORM — BATCH 8: tema dark/light/auto + kontrol font + skip-link. */
+(function () {
+    'use strict';
+    var P = (window.SONIC_CFG || {}).platform || {};
+    var d = document.documentElement;
+    function eff(m) { return m === 'auto' ? (window.matchMedia && matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark') : m; }
+    function curMode() { try { return localStorage.getItem('sonicTheme') || P.theme || 'auto'; } catch (e) { return P.theme || 'auto'; } }
+    function curFont() { try { return parseInt(localStorage.getItem('sonicFontScale') || '100', 10) || 100; } catch (e) { return 100; } }
+    function applyTheme(m) {
+        d.setAttribute('data-theme', eff(m)); d.setAttribute('data-theme-mode', m);
+        try { localStorage.setItem('sonicTheme', m); } catch (e) {}
+        var b = document.getElementById('sonicThemeBtn');
+        if (b) { b.setAttribute('data-mode', m); b.title = 'Theme: ' + m; b.innerHTML = m === 'light' ? '<i class="fas fa-sun"></i>' : (m === 'dark' ? '<i class="fas fa-moon"></i>' : '<i class="fas fa-adjust"></i>'); }
+    }
+    function applyFont(p) { p = Math.max(80, Math.min(140, p)); d.style.fontSize = p + '%'; try { localStorage.setItem('sonicFontScale', String(p)); } catch (e) {} }
+    function init() {
+        applyTheme(curMode());
+        var tb = document.getElementById('sonicThemeBtn');
+        if (tb) tb.addEventListener('click', function () { var o = ['auto', 'dark', 'light']; applyTheme(o[(o.indexOf(curMode()) + 1) % 3]); });
+        if (window.matchMedia) { try { matchMedia('(prefers-color-scheme: light)').addEventListener('change', function () { if (curMode() === 'auto') applyTheme('auto'); }); } catch (e) {} }
+        var fm = document.getElementById('sonicFontMinus'), fr = document.getElementById('sonicFontReset'), fp = document.getElementById('sonicFontPlus');
+        if (fm) fm.addEventListener('click', function () { applyFont(curFont() - 10); });
+        if (fr) fr.addEventListener('click', function () { applyFont(100); });
+        if (fp) fp.addEventListener('click', function () { applyFont(curFont() + 10); });
+        var sk = document.querySelector('.sonic-skip-link');
+        if (sk) sk.addEventListener('click', function () { var t = document.getElementById('sonicMain'); if (t) t.focus(); });
+    }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init); else init();
 })();

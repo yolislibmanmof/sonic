@@ -1,0 +1,57 @@
+/* SONIC DISCOVERY — BATCH 5: rich autocomplete, virtual shelf & co-loan rails, year-slider skin.
+   Memakai design system SONIC yang ada (var --sonic-*, kelas .sonic-book) — file lama tak disentuh. */
+
+/* ===== 1. RICH AUTOCOMPLETE (cover + judul + pengarang + tahun) ===== */
+.sonic-suggest-item.rich{align-items:center;gap:.8rem}
+.sonic-suggest-item .s-cover{width:34px;height:48px;object-fit:cover;border-radius:4px;flex:0 0 auto;background:rgba(0,240,255,.08);border:1px solid var(--glass-border)}
+.sonic-suggest-item .s-cover-fallback{width:34px;text-align:center;font-size:1.1rem;color:var(--sonic-neon);flex:0 0 auto}
+.sonic-suggest-item .s-body{display:flex;flex-direction:column;gap:.15rem;min-width:0;flex:1 1 auto}
+.sonic-suggest-item .s-body .s-label{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-suggest-item .s-meta{font-size:.7rem;color:var(--sonic-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-suggest-all{display:flex;align-items:center;gap:.5rem;padding:.65rem 1.1rem;border-top:1px solid var(--glass-border);color:var(--sonic-neon);font-size:.8rem;font-weight:600;cursor:pointer}
+.sonic-suggest-all:hover{background:rgba(0,240,255,.10)}
+
+/* ===== 2. DISCOVERY SECTIONS (detail) ===== */
+.sonic-discovery-section{margin-top:2.5rem;background:var(--sonic-surface);border:1px solid var(--glass-border);border-radius:16px;padding:1.6rem;backdrop-filter:blur(10px)}
+.sonic-discovery-section h5{color:var(--sonic-neon);font-size:1.1rem;margin-bottom:.4rem;display:flex;align-items:center;gap:.5rem;font-family:'Orbitron',sans-serif}
+.sonic-discovery-sub{color:var(--sonic-muted);font-size:.85rem;margin-bottom:1rem}
+.sonic-discovery-sub b{color:var(--sonic-neon);font-family:'Orbitron',sans-serif}
+.sonic-rail-wrap{position:relative}
+.sonic-rail-nav{display:flex;gap:.4rem;justify-content:flex-end;margin-bottom:.5rem}
+.sonic-rail{display:flex;gap:1rem;overflow-x:auto;scroll-snap-type:x mandatory;padding:.4rem .2rem 1rem;scrollbar-width:thin;scrollbar-color:var(--sonic-neon) rgba(0,0,0,.3)}
+.sonic-rail::-webkit-scrollbar{height:6px}
+.sonic-rail::-webkit-scrollbar-track{background:rgba(0,0,0,.3);border-radius:3px}
+.sonic-rail::-webkit-scrollbar-thumb{background:var(--sonic-neon);border-radius:3px}
+.sonic-rail .sonic-book{flex:0 0 150px;scroll-snap-align:start;position:relative}
+.sonic-rail .sonic-book-cover{height:210px;position:relative}
+.sonic-rail .sonic-book.current{outline:2px solid var(--sonic-neon);outline-offset:3px;border-radius:12px;box-shadow:0 0 25px rgba(0,240,255,.35)}
+.sonic-rail-badge{position:absolute;top:.4rem;left:.4rem;right:.4rem;background:rgba(6,10,20,.92);border:1px solid var(--sonic-neon);color:var(--sonic-neon);font-size:.62rem;font-weight:700;letter-spacing:.5px;padding:.25rem .45rem;border-radius:8px;text-align:center;z-index:2}
+.sonic-shelf-more{margin-top:.6rem;display:inline-flex}
+
+/* ===== 3. YEAR-RANGE SLIDER (ion.rangeSlider skin neon) ===== */
+.sonic-year-group{margin-top:.2rem}
+.sonic-year-group .irs{font-family:inherit}
+.sonic-year-group .irs--flat .irs-line{background:rgba(0,240,255,.15);border-radius:4px}
+.sonic-year-group .irs--flat .irs-bar{background:var(--sonic-neon);box-shadow:0 0 8px rgba(0,240,255,.5)}
+.sonic-year-group .irs--flat .irs-handle>i:first-child{background:var(--sonic-neon);border-radius:3px}
+.sonic-year-group .irs--flat .irs-handle:hover>i:first-child,
+.sonic-year-group .irs--flat .irs-handle.state_hover>i:first-child{background:var(--sonic-plasma)}
+.sonic-year-group .irs--flat .irs-from,
+.sonic-year-group .irs--flat .irs-to,
+.sonic-year-group .irs--flat .irs-single{background:var(--sonic-neon);color:#000;font-weight:700;font-size:.7rem;border-radius:6px}
+.sonic-year-group .irs--flat .irs-from:before,
+.sonic-year-group .irs--flat .irs-to:before,
+.sonic-year-group .irs--flat .irs-single:before{border-top-color:var(--sonic-neon)}
+.sonic-year-group .irs--flat .irs-grid-text{color:var(--sonic-muted);font-size:.6rem}
+.sonic-year-group .irs--flat .irs-grid-pol{background:rgba(0,240,255,.25)}
+
+/* ===== GUARDS ===== */
+@media (max-width:768px){
+.sonic-rail .sonic-book{flex:0 0 128px}
+.sonic-rail .sonic-book-cover{height:180px}
+.sonic-discovery-section{padding:1.1rem}
+}
+@media (prefers-reduced-motion:reduce){
+.sonic-rail{scroll-behavior:auto}
+.sonic-rail .sonic-book.current{box-shadow:none}
+}

@@ -173,12 +173,19 @@ if (isset($engine) && is_object($_sonic_ctx) && method_exists($_sonic_ctx, 'gene
     <script>$('.card-body > *').highlight(<?= $searchableInJsArray ?>);</script>
 <?php endif; ?>
 
+<?php /* ===== BATCH 4: QR LOKAL (offline) — dimuat SEBELUM JS SONIC agar window.qrcode siap.
+         File dibuat oleh: php tools/fetch_qr.php
+         Bila file belum ada, blok ini dilewati dengan aman (fallback online tetap jalan). ===== */ ?>
+<?php if (is_file(__DIR__ . '/../assets/plugin/qrcode/qrcode.min.js')): ?>
+<script defer src="<?= assets('plugin/qrcode/qrcode.min.js') ?>?v=<?= sonic_asset_ver('plugin/qrcode/qrcode.min.js') ?>"></script>
+<?php endif; ?>
+
 <?php
 /* SONIC JS: bundle bila ada (Batch 2), fallback modular — semua defer */
 if (is_file(__DIR__ . '/../assets/js/sonic.bundle.js')) {
     echo '<script defer src="' . assets('js/sonic.bundle.js') . '?v=' . sonic_asset_ver('js/sonic.bundle.js') . '"></script>' . "\n";
 } else {
-    $_sonic_js = ['js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js','js/sonic-premium.js'];
+    $_sonic_js = ['js/app_jquery.js', 'js/sonic.js', 'js/sonic-marc.js', 'js/sonic-facet.js', 'js/sonic-member.js', 'js/sonic-footer.js', 'js/sonic-librarian.js', 'js/sonic-info.js', 'js/sonic-particles.js', 'js/sonic-detail.js', 'js/sonic-suggest.js', 'js/sonic-result.js','js/sonic-premium.js','js/sonic-discovery.js','js/sonic-platform.js'];
     foreach ($_sonic_js as $_js) {
         if (file_exists(__DIR__ . '/../assets/' . $_js)) {
             echo '<script defer src="' . assets($_js) . '?v=' . sonic_asset_ver($_js) . '"></script>' . "\n";

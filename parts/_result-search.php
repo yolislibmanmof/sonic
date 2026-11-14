@@ -1,5 +1,5 @@
 <?php
-# @Filename: _result-search.php (SONIC v6 — FASE 2: multi-facet + sort + export + saved search)
+# @Filename: _result-search.php (SONIC v6 — FASE 2 + BATCH 5: multi-facet + sort + export + saved search + year-range slider)
 $sonic_compact_hero = true;
 include '_navbar.php';
 include '_search-form.php';
@@ -17,8 +17,11 @@ $sonic_state = [
     'isbn'        => (string)($sonic_filter['isbn']        ?? $sonic_raw('isbn')),
     'callnumber'  => (string)($sonic_filter['callnumber']  ?? $sonic_raw('callnumber')),
     'publishyear' => (string)($sonic_filter['publishyear'] ?? $sonic_raw('publishyear')),
+    'years'       => (string)($sonic_filter['years']       ?? ''),
     'sort'        => (string)($sonic_filter['sort']        ?? ''),
 ];
+/* BATCH 5: validasi format years "dari;sampai" (kontrak core: publish_year BETWEEN) */
+if (!preg_match('/^\d{1,4};\d{1,4}$/', $sonic_state['years'])) $sonic_state['years'] = '';
 foreach (['gmd', 'location', 'colltype'] as $mk) {
     $v = $sonic_filter[$mk] ?? null;
     if ($v === null) {
@@ -35,7 +38,7 @@ if (!function_exists('sonic_search_url')) {
     function sonic_search_url($state, $overrides = []) {
         $s = array_merge($state, $overrides);
         $filter = [];
-        foreach (['title','author','subject','isbn','callnumber','publishyear','sort'] as $k) if (!empty($s[$k])) $filter[$k] = $s[$k];
+        foreach (['title','author','subject','isbn','callnumber','publishyear','years','sort'] as $k) if (!empty($s[$k])) $filter[$k] = $s[$k];
         foreach (['gmd','location','colltype'] as $k) if (!empty($s[$k])) $filter[$k] = array_values($s[$k]);
         $params = ['search' => 'search'];
         if ($s['keywords'] !== '') $params['keywords'] = $s['keywords'];
@@ -60,6 +63,29 @@ if (!function_exists('sonic_facet_values')) {
         return $cache[$type] = $out;
     }
 }
+
+/* ===== BATCH 5: batas tahun untuk slider (cache 1 jam, pola core SearchFilter::getYears) ===== */
+$sonic_year_slider_on = (int)($sysconf['template']['sonic_year_slider'] ?? 1) === 1;
+$sonic_year_bounds = ['min' => 0, 'max' => 0];
+if ($sonic_year_slider_on && function_exists('sonic_cache') && isset($dbs) && is_object($dbs)) {
+    $sonic_year_bounds = sonic_cache('sonic_year_bounds_v1', 3600, function () use ($dbs) {
+        $b = ['min' => 0, 'max' => 0];
+        try {
+            $r = $dbs->query("SELECT MIN(CAST(publish_year AS UNSIGNED)), MAX(CAST(publish_year AS UNSIGNED)) FROM biblio WHERE publish_year REGEXP '^[0-9]{4}$'");
+            if ($r && ($row = $r->fetch_row())) { $b['min'] = (int)$row[0]; $b['max'] = (int)$row[1]; }
+        } catch (Throwable $e) {}
+        return $b;
+    });
+    if (!is_array($sonic_year_bounds)) $sonic_year_bounds = ['min' => 0, 'max' => 0];
+}
+$sonic_years_from = (int)$sonic_year_bounds['min'];
+$sonic_years_to = (int)$sonic_year_bounds['max'];
+if ($sonic_state['years'] !== '' && preg_match('/^(\d{1,4});(\d{1,4})$/', $sonic_state['years'], $ym)) {
+    $sonic_years_from = max((int)$sonic_year_bounds['min'], (int)$ym[1]);
+    $sonic_years_to = min((int)$sonic_year_bounds['max'], (int)$ym[2]);
+    if ($sonic_years_from > $sonic_years_to) { $sonic_years_from = (int)$sonic_year_bounds['min']; $sonic_years_to = (int)$sonic_year_bounds['max']; }
+}
+
 $sonic_view = $_SESSION['LIST_VIEW'] ?? 'list';
 $sonic_has_filter = !empty(array_filter($sonic_state, fn($v) => $v !== '' && $v !== []));
 ?>
@@ -78,6 +104,9 @@ $sonic_has_filter = !empty(array_filter($sonic_state, fn($v) => $v !== '' && $v 
             <div class="sonic-facet-chips">
                 <?php if ($sonic_state['keywords'] !== ''): ?>
                     <a class="sonic-tag sonic-chip" href="<?= htmlspecialchars(sonic_search_url($sonic_state, ['keywords' => ''])) ?>"><i class="fas fa-times"></i><?= htmlspecialchars($sonic_state['keywords']) ?></a>
+                <?php endif; ?>
+                <?php if ($sonic_state['years'] !== ''): ?>
+                    <a class="sonic-tag sonic-chip" href="<?= htmlspecialchars(sonic_search_url($sonic_state, ['years' => ''])) ?>"><i class="fas fa-times"></i><?= __('Year') ?>: <?= (int)$sonic_years_from ?>&ndash;<?= (int)$sonic_years_to ?></a>
                 <?php endif; ?>
                 <?php foreach (['title','author','subject','isbn','callnumber','publishyear'] as $sk): if ($sonic_state[$sk] === '') continue; ?>
                     <a class="sonic-tag sonic-chip" href="<?= htmlspecialchars(sonic_search_url($sonic_state, [$sk => ''])) ?>"><i class="fas fa-times"></i><?= $sk ?>: <?= htmlspecialchars($sonic_state[$sk]) ?></a>
@@ -107,6 +136,16 @@ $sonic_has_filter = !empty(array_filter($sonic_state, fn($v) => $v !== '' && $v 
                 <label><i class="far fa-calendar-alt"></i> <?= __('Publish Year') ?></label>
                 <input type="text" name="publishyear" class="sonic-facet-input" placeholder="cth: 2024" value="<?= htmlspecialchars($sonic_state['publishyear']) ?>">
             </div>
+
+            <?php if ($sonic_year_slider_on && $sonic_years_to > $sonic_years_from && $sonic_year_bounds['max'] > $sonic_year_bounds['min']): ?>
+            <!-- BATCH 5: year-range slider → filter.years="dari;sampai" (core BETWEEN) -->
+            <div class="sonic-facet-group sonic-year-group">
+                <label><i class="fas fa-calendar-week"></i> <?= __('Year Range') ?></label>
+                <input type="text" id="sonicYearRange" class="sonic-year-range" value=""
+                       data-min="<?= (int)$sonic_year_bounds['min'] ?>" data-max="<?= (int)$sonic_year_bounds['max'] ?>"
+                       data-from="<?= (int)$sonic_years_from ?>" data-to="<?= (int)$sonic_years_to ?>">
+            </div>
+            <?php endif; ?>
 
             <div class="sonic-facet-actions">
                 <button type="submit" class="sonic-btn" style="justify-content:center;"><i class="fas fa-bolt"></i> <?= __('Apply') ?></button>

@@ -52,7 +52,7 @@ if ($opt('--clean')) {
 /* ===== 1) CSS bundle ===== */
 if ($doAll || $opt('--css')) {
     out("== CSS bundle ==");
-    $cssFiles = ['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash','sonic-premium'];
+    $cssFiles = ['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash','sonic-premium','sonic-discovery','sonic-platform'];
     $css = "/* SONIC bundle — generated " . date('c') . " — jangan edit manual; edit file modular lalu build ulang */\n";
     $n = 0;
     foreach ($cssFiles as $name) {
@@ -69,7 +69,7 @@ if ($doAll || $opt('--css')) {
 /* ===== 2) JS bundle (konkatenasi aman — tiap file IIFE/jQuery-ready) ===== */
 if ($doAll || $opt('--js')) {
     out("== JS bundle ==");
-    $jsFiles = ['app_jquery','sonic','sonic-marc','sonic-facet','sonic-member','sonic-footer','sonic-librarian','sonic-info','sonic-particles','sonic-detail','sonic-suggest','sonic-result','sonic-premium'];
+    $jsFiles = ['app_jquery','sonic','sonic-marc','sonic-facet','sonic-member','sonic-footer','sonic-librarian','sonic-info','sonic-particles','sonic-detail','sonic-suggest','sonic-result','sonic-premium','sonic-discovery','sonic-platform'];
     $js = "/* SONIC bundle — generated " . date('c') . " */\n";
     $n = 0;
     foreach ($jsFiles as $name) {

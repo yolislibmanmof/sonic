@@ -1,7 +1,8 @@
 /**
- * SONIC OPAC — Search Experience (Fase 2 FINAL)
- * Summary bar, stagger, empty-state, clear per grup facet, badge jumlah,
- * saved searches, ekspor RSS/JSON-LD/XML. Sort ditangani sonic-facet.js.
+ * SONIC OPAC — Search Experience (Fase 2 FINAL — BATCH 4)
+ * BATCH 4: base URL dari SONIC_CFG (bundle/rename-safe), i18n ID/EN,
+ *          badge facet jujur (tooltip + disembunyikan saat query aktif),
+ *          console hanya saat SONIC_DEBUG. Semua fitur lama dipertahankan.
  */
 (function () {
     'use strict';
@@ -10,6 +11,7 @@
     function qsa(s) { return Array.prototype.slice.call(document.querySelectorAll(s)); }
     function esc(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
     function findBase() {
+        if (window.SONIC_CFG && window.SONIC_CFG.base) return window.SONIC_CFG.base;
         var link = document.querySelector('link[href*="sonic-base.css"]');
         return link ? link.href.replace(/assets\/css\/sonic-base\.css.*$/, '') : 'template/sonic/';
     }
@@ -17,6 +19,10 @@
         try { return JSON.parse(new URLSearchParams(window.location.search).get('filter') || '{}') || {}; }
         catch (e) { return {}; }
     }
+    var IS_ID = !!(window.SONIC_CFG && window.SONIC_CFG.lang === 'id');
+    var L = IS_ID
+        ? { noRes: 'Tidak ada hasil', noResDesc: 'Kami tidak menemukan koleksi yang cocok dengan pencarian Anda', tryOther: 'Coba kata kunci lain atau kurangi filter.', reset: 'Reset Filter', home: 'Kembali ke Beranda', total: 'total hasil', onPage: 'hasil di halaman ini', savedEmpty: 'Belum ada pencarian tersimpan.', savedOk: 'Pencarian disimpan', savedDefault: 'Pencarian tersimpan', remove: 'Hapus', clearGroup: 'Hapus filter grup ini', facetGlobal: 'Jumlah total di seluruh katalog (bukan hanya hasil pencarian ini)' }
+        : { noRes: 'No results found', noResDesc: 'We couldn\'t find any collection matching your query', tryOther: 'Try different keywords or remove some filters.', reset: 'Reset Filters', home: 'Back to Home', total: 'total results', onPage: 'on this page', savedEmpty: 'No saved searches yet.', savedOk: 'Search saved', savedDefault: 'Saved search', remove: 'Remove', clearGroup: 'Remove this filter', facetGlobal: 'Total across the whole catalog (not just this search)' };
 
     function emptyStateHTML(qLabels) {
         return '<div class="sonic-empty">' +
@@ -24,9 +30,9 @@
             '<g class="float" stroke="#00f0ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M40 120 Q70 105 100 118 Q130 105 160 120 L160 62 Q130 50 100 62 Q70 50 40 62 Z"/><path d="M100 62 L100 118"/></g>' +
             '<g stroke="#ff00aa" stroke-width="4" stroke-linecap="round"><circle cx="100" cy="86" r="34"/><path d="M125 111 L152 138"/></g>' +
             '<line class="scan" x1="74" y1="86" x2="126" y2="86" stroke="#00f0ff" stroke-width="2"/></svg>' +
-            '<h3>No results found</h3>' +
-            '<p>We couldn\'t find any collection matching your query' + (qLabels.length ? ' for <strong style="color:var(--sonic-neon)">' + esc(qLabels.join(' · ')) + '</strong>' : '') + '. Try different keywords or remove some filters.</p>' +
-            '<div class="sonic-empty-actions"><a class="sonic-btn" href="index.php?search=search"><i class="fas fa-undo"></i> Reset Filters</a><a class="sonic-btn-outline" href="index.php"><i class="fas fa-home"></i> Back to Home</a></div></div>';
+            '<h3>' + L.noRes + '</h3>' +
+            '<p>' + L.noResDesc + (qLabels.length ? ' <strong style="color:var(--sonic-neon)">' + esc(qLabels.join(' · ')) + '</strong>' : '') + '. ' + L.tryOther + '</p>' +
+            '<div class="sonic-empty-actions"><a class="sonic-btn" href="index.php?search=search"><i class="fas fa-undo"></i> ' + L.reset + '</a><a class="sonic-btn-outline" href="index.php"><i class="fas fa-home"></i> ' + L.home + '</a></div></div>';
     }
 
     /* ===== Saved searches (localStorage) ===== */
@@ -36,10 +42,10 @@
     function renderSaved() {
         var list = qs('#sonicSavedList'); if (!list) return;
         var arr = loadSaved(); list.innerHTML = '';
-        if (!arr.length) { list.innerHTML = '<p class="sonic-saved-empty">Belum ada pencarian tersimpan.</p>'; return; }
+        if (!arr.length) { list.innerHTML = '<p class="sonic-saved-empty">' + L.savedEmpty + '</p>'; return; }
         arr.forEach(function (it, i) {
             var row = document.createElement('div'); row.className = 'sonic-saved-item';
-            row.innerHTML = '<a href="' + esc(it.url) + '"><i class="fas fa-search"></i>' + esc(it.label) + '</a><button type="button" data-i="' + i + '" class="sonic-facet-clear" title="Hapus">&times;</button>';
+            row.innerHTML = '<a href="' + esc(it.url) + '"><i class="fas fa-search"></i>' + esc(it.label) + '</a><button type="button" data-i="' + i + '" class="sonic-facet-clear" title="' + L.remove + '">&times;</button>';
             list.appendChild(row);
         });
     }
@@ -47,10 +53,10 @@
         var btn = qs('#sonicSaveSearch'), panel = qs('#sonicSavedPanel'), close = qs('#sonicSavedClose'), list = qs('#sonicSavedList');
         if (btn) btn.addEventListener('click', function () {
             var arr = loadSaved();
-            var label = (new URLSearchParams(window.location.search).get('keywords') || 'Pencarian tersimpan');
+            var label = (new URLSearchParams(window.location.search).get('keywords') || L.savedDefault);
             arr.unshift({ url: window.location.href, label: label, ts: Date.now() });
             storeSaved(arr); renderSaved(); if (panel) panel.style.display = 'block';
-            if (window.toastr) toastr.success('Pencarian disimpan');
+            if (window.toastr) toastr.success(L.savedOk);
         });
         if (close) close.addEventListener('click', function () { if (panel) panel.style.display = 'none'; });
         if (list) list.addEventListener('click', function (e) {
@@ -92,7 +98,8 @@
             var total = null; var foundStrong = qs('.search-found-info strong');
             if (foundStrong) { var n = parseInt(foundStrong.textContent.replace(/[^\d]/g, ''), 10); if (!isNaN(n)) total = n; }
             var bar = document.createElement('div'); bar.className = 'sonic-result-bar';
-            bar.innerHTML = '<span><i class="fas fa-bolt"></i> <b>' + (total !== null ? total : cards.length) + '</b> ' + (total !== null ? 'total results' : 'result' + (cards.length === 1 ? '' : 's') + ' on this page') + '</span>' +
+            var countLabel = total !== null ? L.total : (IS_ID ? L.onPage : ('result' + (cards.length === 1 ? '' : 's') + ' ' + L.onPage));
+            bar.innerHTML = '<span><i class="fas fa-bolt"></i> <b>' + (total !== null ? total : cards.length) + '</b> ' + countLabel + '</span>' +
                 (qLabels.length ? '<span class="sonic-result-q"><i class="fas fa-search"></i> ' + esc(qLabels.join(' · ')) + '</span>' : '');
             var toolbar = main.querySelector('.sonic-result-toolbar');
             if (toolbar) toolbar.insertAdjacentElement('afterend', bar); else main.insertBefore(bar, main.firstChild);
@@ -108,30 +115,36 @@
             g.classList.add('active');
             var label = g.querySelector('label'); if (!label) return;
             var clr = document.createElement('button');
-            clr.type = 'button'; clr.className = 'sonic-facet-clear'; clr.title = 'Remove this filter'; clr.innerHTML = '&times;';
+            clr.type = 'button'; clr.className = 'sonic-facet-clear'; clr.title = L.clearGroup; clr.innerHTML = '&times;';
             clr.addEventListener('click', function () {
                 boxes.forEach(function (b) { b.checked = false; var w = b.closest('.sonic-facet-check'); if (w) w.classList.remove('on'); });
-                // Picu satu change agar sonic-facet.js membangun ulang URL (satu kali navigasi).
                 boxes[0].dispatchEvent(new Event('change', { bubbles: true }));
             });
             label.appendChild(clr);
         });
 
-        /* ===== 3. BADGE JUMLAH OPSI FACET ===== */
-        fetch(findBase() + 'api/facet-counts.php', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (r) { return r.json(); })
-            .then(function (data) {
-                qsa('.sonic-facet-count').forEach(function (el) {
-                    var f = el.getAttribute('data-facet'), v = el.getAttribute('data-value');
-                    var map = data[f] || {};
-                    if (map[v] != null) el.textContent = map[v];
-                });
-            })
-            .catch(function () { /* silent */ });
+        /* ===== 3. BADGE JUMLAH OPSI FACET (jujur: global vs query aktif) ===== */
+        var queryActive = !!params.get('keywords') || Object.keys(filter).some(function (k) { return k !== 'sort' && filter[k] && (!Array.isArray(filter[k]) || filter[k].length); });
+        var countEls = qsa('.sonic-facet-count');
+        countEls.forEach(function (el) { el.title = L.facetGlobal; });
+        if (!queryActive) {
+            fetch(findBase() + 'api/facet-counts.php', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    countEls.forEach(function (el) {
+                        var f = el.getAttribute('data-facet'), v = el.getAttribute('data-value');
+                        var map = data[f] || {};
+                        if (map[v] != null) el.textContent = map[v];
+                    });
+                })
+                .catch(function () { /* silent */ });
+        } else {
+            countEls.forEach(function (el) { el.textContent = ''; });
+        }
 
         initSaved();
         initExport();
     });
 
-    console.log('%c🎛 SONIC Search Experience Fase 2: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
+    if (window.SONIC_DEBUG) console.log('%c🎛 SONIC Search Experience: ACTIVE', 'color:#00f0ff;font-size:14px;font-weight:700;');
 })();

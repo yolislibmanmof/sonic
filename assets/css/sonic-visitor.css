@@ -58,3 +58,11 @@
 /* Kiosk immersive */
 .sonic-navbar,.sonic-progress,.sonic-totop{display:none!important}
 .sonic-kiosk{min-height:100vh}
+
+/* ===== BATCH 6: QR SCAN KIOSK (html5-qrcode) ===== */
+.sonic-kiosk-scan{margin-top:1rem;display:flex;flex-direction:column;gap:.7rem;align-items:center}
+.sonic-scan-btn{width:100%;justify-content:center;background:linear-gradient(135deg,var(--sonic-electric),var(--sonic-plasma));border:none;color:#fff}
+.sonic-qr-panel{width:100%;display:flex;flex-direction:column;gap:.6rem;align-items:center;background:rgba(0,0,0,.35);border:1px solid var(--glass-border);border-radius:14px;padding:1rem}
+.sonic-qr-reader{width:100%;max-width:320px;border-radius:12px;overflow:hidden;border:1px solid var(--sonic-neon);box-shadow:0 0 20px rgba(0,240,255,.25)}
+.sonic-qr-reader video{width:100%!important;height:auto!important;display:block}
+.sonic-qr-status{color:var(--sonic-muted);font-size:.8rem;text-align:center;margin:0}

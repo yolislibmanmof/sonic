@@ -1,6 +1,8 @@
 /**
- * SONIC KIOSK VISITOR — Fase 5.1 Ultimate.
+ * SONIC KIOSK VISITOR — Fase 5.1 Ultimate + BATCH 6 (Scan QR kartu anggota).
  * Kontrak core tetap: POST counter/memberID/institution + CSRF → JSON {message,image,new_token}.
+ * BATCH 6: html5-qrcode lokal → decode ID anggota → isi form → check-in otomatis.
+ *          Kamera hanya di HTTPS/localhost; input manual selalu tersedia.
  */
 (function () {
     'use strict';
@@ -13,6 +15,7 @@
     var success = $('kioskSuccess'), photo = $('kioskPhoto'), msg = $('kioskMsg');
     if (!form || !memberID) return;
     var latestToken = token ? token.value : '';
+    var stopScan = null; // BATCH 6: diisi oleh initScan bila aktif
     var idleMs = (parseInt(cfg.idle, 10) || 20) * 1000;
     var lastAct = Date.now(), successTimer = null;
 
@@ -89,6 +92,7 @@
     setInterval(function () {
         if (Date.now() - lastAct > idleMs && success && !success.classList.contains('show')) {
             form.reset(); if (token) token.value = latestToken; memberID.blur();
+            if (stopScan) stopScan(); // BATCH 6: matikan kamera saat idle
         }
     }, 1000);
 
@@ -107,6 +111,7 @@
     }
     function showSuccess(html, isError) {
         if (!success) return;
+        if (stopScan) stopScan(); // BATCH 6: matikan kamera saat tampil hasil
         msg.innerHTML = isError ? '<span class="error">' + cleanMsg(html) + '</span>' : cleanMsg(html);
         success.classList.add('show');
         if (!isError) confetti();
@@ -127,13 +132,63 @@
             .then(function (res) {
                 if (res.new_token) { latestToken = res.new_token; if (token) token.value = res.new_token; }
                 if (photo) { photo.src = './images/persons/' + encodeURIComponent(res.image || 'person.png'); photo.onerror = function () { this.src = './images/persons/person.png'; }; }
-                showSuccess(res.message || 'Terima kasih!', false);
+                var isErr = !!res.status; // core: status = getError() → error bila terisi
+                showSuccess(res.message || (isErr ? 'Terjadi kesalahan.' : 'Terima kasih!'), isErr);
                 speak(res.message || '');
-                bumpStat('today'); bumpStat('total');
+                if (!isErr) { bumpStat('today'); bumpStat('total'); }
                 form.reset(); if (token) token.value = latestToken;
             })
             .catch(function () { showSuccess('Terjadi kesalahan. Coba lagi.', true); })
             .finally(function () { if (btn) btn.disabled = false; });
     });
+
+    /* ===== BATCH 6: SCAN QR KARTU ANGGOTA (html5-qrcode lokal) ===== */
+    (function initScan() {
+        if (!cfg.qr || typeof Html5Qrcode === 'undefined') return;
+        var btn = $('sonicScanBtn'), panel = $('sonicQrPanel'), statusEl = $('sonicQrStatus'), closeBtn = $('sonicScanClose');
+        if (!btn || !panel || !$('sonicQrReader')) return;
+        var scanner = null, scanning = false, handled = false;
+        function setStatus(t) { if (statusEl) statusEl.textContent = t; }
+        function stop() {
+            if (scanner && scanning) {
+                try {
+                    scanner.stop().then(function () { scanning = false; try { scanner.clear(); } catch (e) {} }).catch(function () { scanning = false; });
+                } catch (e) { scanning = false; }
+            }
+            panel.hidden = true;
+        }
+        stopScan = stop; // dipakai idle & showSuccess
+        function onDecoded(text) {
+            if (handled) return;
+            var id = String(text || '').trim();
+            // Hanya terima ID anggota polos; tolak QR buku/URL agar tidak salah check-in
+            if (/^https?:\/\//i.test(id) || id.length < 2 || id.length > 40 || !/^[A-Za-z0-9._\-]+$/.test(id)) {
+                setStatus('QR ini bukan kartu anggota. Arahkan QR kartu anggota.');
+                return;
+            }
+            handled = true;
+            stop();
+            memberID.value = id;
+            if (typeof form.requestSubmit === 'function') form.requestSubmit();
+            else form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+        btn.addEventListener('click', function () {
+            act(); handled = false;
+            panel.hidden = false;
+            if (!window.isSecureContext) {
+                setStatus('Kamera butuh HTTPS atau localhost. Silakan ketik ID anggota manual.');
+                return;
+            }
+            setStatus('Memulai kamera…');
+            try {
+                scanner = new Html5Qrcode('sonicQrReader');
+                scanner.start({ facingMode: 'environment' }, { fps: 10, qrbox: { width: 240, height: 240 } }, onDecoded, function () {})
+                    .then(function () { scanning = true; setStatus('Arahkan QR kartu anggota ke kamera'); })
+                    .catch(function (err) { setStatus('Tidak bisa mengakses kamera. Silakan ketik ID anggota manual.'); });
+            } catch (e) { setStatus('Scanner tidak tersedia. Silakan ketik ID anggota manual.'); }
+        });
+        if (closeBtn) closeBtn.addEventListener('click', function () { stop(); memberID.focus(); });
+    })();
+
     memberID.focus();
 })();

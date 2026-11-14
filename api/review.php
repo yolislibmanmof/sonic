@@ -1,22 +1,29 @@
 <?php
 /**
- * SONIC OPAC — Rating & Ulasan pemustaka (BATCH 1)
- * FIX: sesi member ikut di-boot; CSRF fail-closed + new_token; upsert 1 ulasan/member/buku;
- *      throttle; tanpa double-escape; CREATE TABLE hanya sekali (flag file).
+ * SONIC OPAC — Rating & Ulasan (BATCH 1 + BATCH 8: rate-limit + ETag GET)
  * GET  ?biblio_id=X  → {avg,count,items}
  * POST action=add    → {status,message,new_token,token_name}
  */
 define('INDEX_AUTH', '1');
 require_once '../../../sysconfig.inc.php';
-require_once LIB . 'member_session.inc.php'; // WAJIB: sesi member (kontrak index.php)
+require_once LIB . 'member_session.inc.php'; // WAJIB: sesi member
 
 header('Content-Type: application/json; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
 
+/* BATCH 8: rate-limit (POST lebih ketat) + ETag GET (graceful) */
+if (is_file(__DIR__ . '/../parts/_platform.php')) {
+    require_once __DIR__ . '/../parts/_platform.php';
+    if (function_exists('sonic_api_rate')) {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') sonic_api_rate('review_post', 10, 60);
+        else sonic_api_rate('review_get', 60, 60);
+    }
+}
+
 $TOKEN_NAME = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTokenName() : '_csrf_token_645a83a41868941e4692aa31e7235f2';
 
-/* Tabel sekali saja (flag file di temp; CREATE IF NOT EXISTS tetap idempotent) */
+/* Tabel sekali saja (flag file; CREATE IF NOT EXISTS idempotent) */
 try {
     $flag = sys_get_temp_dir() . '/sonic_review_tbl_' . md5(defined('SB') ? SB : __DIR__) . '.flag';
     if (!is_file($flag)) {
@@ -45,7 +52,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
         $out['message'] = 'Login dulu untuk menulis ulasan';
         echo json_encode($out); exit;
     }
-    // CSRF fail-closed + rotasi token (Volnix me-rotasi setelah validasi sukses)
     if (!class_exists('\Volnix\CSRF\CSRF') || !\Volnix\CSRF\CSRF::validate($_POST)) {
         http_response_code(403);
         $out['message'] = 'Token tidak valid / kedaluwarsa. Muat ulang halaman.';
@@ -54,7 +60,6 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
     }
     $out['new_token'] = \Volnix\CSRF\CSRF::getToken();
 
-    // Throttle ringan: 1 tulis / 15 detik / sesi
     $now = time();
     if (isset($_SESSION['sonic_review_last']) && ($now - (int)$_SESSION['sonic_review_last']) < 15) {
         $out['message'] = 'Terlalu cepat. Tunggu beberapa detik lagi.';
@@ -63,10 +68,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST' && ($_POST['action'] ?? '')
 
     $rating = max(1, min(5, (int)($_POST['rating'] ?? 5)));
     $review = mb_substr(trim(strip_tags((string)($_POST['review'] ?? ''))), 0, 1000);
-    $mid = (string)$_SESSION['mid']; // bind mentah — JANGAN di-escape dulu (prepared statement)
+    $mid = (string)$_SESSION['mid'];
 
     try {
-        // Upsert: satu ulasan per member per buku (edit menimpa milik sendiri)
         $stmt = $dbs->prepare("INSERT INTO sonic_review (biblio_id, member_id, rating, review, created_at)
                                VALUES (?,?,?,?,NOW())
                                ON DUPLICATE KEY UPDATE rating=VALUES(rating), review=VALUES(review), created_at=NOW()");
@@ -96,4 +100,5 @@ try {
     $q = $stmt->get_result();
     while ($row = $q->fetch_assoc()) $out['items'][] = $row;
 } catch (Throwable $e) {}
-echo json_encode($out);
+$json = json_encode($out);
+if (function_exists('sonic_etag_send')) { sonic_etag_send($json, 'application/json; charset=utf-8', 60); } else { echo $json; }

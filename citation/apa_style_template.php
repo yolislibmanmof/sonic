@@ -1,36 +1,40 @@
 <?php
 /**
- * APA Style citation (SONIC Terminal Style)
+ * APA Style citation (SONIC Terminal — BATCH 4)
+ * Fix: escaping penuh (anti-XSS), path rename-safe, guard $authors,
+ *      nama 1 kata aman, "et al." benar, tahun n.d. bila kosong.
+ * Catatan APA 7: tempat terbit tidak dicantumkan (hanya penerbit).
  */
-
-$author_list = [];
-$authors_string = '';
-
-foreach ($authors as $order => $data) {
-    $chunk_name = explode(' ', $data['author_name']);
-    $last_chunkname_order = array_key_last($chunk_name);
-    $last_name = $chunk_name[$last_chunkname_order];
-    $first_name = $chunk_name[0] ?? '';
-
-    if (!str_ends_with(trim($first_name), ',')) {
-        unset($chunk_name[$last_chunkname_order]);
-        if ($order > 0 & count($authors) > 2) continue;
-        $author_list[] = $last_name . ', ' . implode(', ', array_map(fn($name) => ucfirst(substr($name, 0,1)) . '.', $chunk_name));
+$sonic_e = function ($s) { return htmlspecialchars((string)$s, ENT_QUOTES); };
+$sonic_src = (isset($authors) && is_array($authors)) ? $authors : [];
+$sonic_total = count($sonic_src);
+$sonic_list = [];
+foreach ($sonic_src as $sonic_order => $sonic_data) {
+    $sonic_name = trim(is_array($sonic_data) ? ($sonic_data['author_name'] ?? '') : (string)$sonic_data);
+    if ($sonic_name === '') continue;
+    if ($sonic_order > 0 && $sonic_total > 2) continue; // APA: pengarang pertama + et al.
+    $sonic_parts = preg_split('/\s+/', $sonic_name, -1, PREG_SPLIT_NO_EMPTY);
+    if (count($sonic_parts) === 1) { $sonic_list[] = $sonic_parts[0]; continue; }
+    $sonic_first = $sonic_parts[0];
+    $sonic_init = fn($n) => ucfirst(mb_substr($n, 0, 1)) . '.';
+    if (str_ends_with($sonic_first, ',')) {
+        $sonic_list[] = $sonic_first . ' ' . implode(' ', array_map($sonic_init, array_slice($sonic_parts, 1)));
     } else {
-        if ($order > 0 & count($authors) > 2) continue;
-        unset($chunk_name[0]);
-        $author_list[] = $first_name . ' ' . implode(', ', array_map(fn($name) => ucfirst(substr($name, 0,1)) . '.', $chunk_name));
+        $sonic_last = array_pop($sonic_parts);
+        $sonic_list[] = $sonic_last . ', ' . implode(' ', array_map($sonic_init, $sonic_parts));
     }
 }
-$authors_string = implode(', ', $author_list) . (count($authors) > 2 ? ' et al' : '');
+$authors_string = implode(', ', $sonic_list) . ($sonic_total > 2 ? ' et al.' : '');
+$sonic_year = trim((string)($publish_year ?? ''));
+$sonic_year_disp = $sonic_year !== '' ? $sonic_year : 'n.d.';
+$sonic_css = SWB . ($GLOBALS['sysconf']['template']['dir'] ?? 'template') . '/' . basename(dirname(__DIR__)) . '/assets/css/';
 ?>
-
 <!DOCTYPE html>
 <html>
 <head>
     <title>Citation - APA</title>
-    <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-base.css">
-    <link rel="stylesheet" href="<?= SWB ?>template/sonic/assets/css/sonic-modal.css">
+    <link rel="stylesheet" href="<?= $sonic_css ?>sonic-base.css">
+    <link rel="stylesheet" href="<?= $sonic_css ?>sonic-modal.css">
     <style>body { padding: 2rem; }</style>
 </head>
 <body class="sonic-theme">
@@ -44,18 +48,10 @@ $authors_string = implode(', ', $author_list) . (count($authors) > 2 ? ' et al' 
     <div class="sonic-terminal-body">
         <h3>APA Style Citation</h3>
         <p class="citation">
-            <?php if ($authors_string): ?>
-                <span class="authors"><?= $authors_string ?></span>
-                <span class="year">(<?= $publish_year ?>).</span>
-                <span class="title"><em><?= $title ?></em>
-                    <?php if ($edition): ?>(<span class="edition"><?= $edition ?></span>)<?php endif; ?>.
-                </span>
-            <?php else: ?>
-                <span class="title"><em><?= $title ?></em>.</span>
-                <span class="year">(<?= $publish_year ?>).</span>
-            <?php endif; ?>
-            <span class="publish_place"><?= $publish_place ?>:</span>
-            <span class="publisher"><?= $publisher_name ?>.</span>
+            <?php if ($authors_string !== ''): ?><span class="authors"><?= $sonic_e($authors_string) ?></span> <?php endif; ?>
+            <span class="year">(<?= $sonic_e($sonic_year_disp) ?>).</span>
+            <span class="title"><em><?= $sonic_e($title ?? '') ?></em><?php if (!empty($edition)): ?> (<span class="edition"><?= $sonic_e($edition) ?></span>)<?php endif; ?>.</span>
+            <?php if (!empty($publisher_name)): ?><span class="publisher"><?= $sonic_e($publisher_name) ?>.</span><?php endif; ?>
         </p>
     </div>
 </div>

@@ -1,0 +1,67 @@
+/* SONIC PLATFORM — BATCH 8: light theme, a11y, font-scale, breadcrumb, stats */
+/* ===== LIGHT THEME (override variabel + selektor hardcoded) ===== */
+html[data-theme="light"]{--sonic-bg:#eef2f6;--sonic-bg-2:#ffffff;--sonic-surface:rgba(255,255,255,.85);--sonic-neon:#0077a8;--sonic-neon-2:#005f8a;--sonic-electric:#4a3aff;--sonic-plasma:#c2007a;--sonic-text:#12202c;--sonic-muted:#51636f;--sonic-success:#007a4d;--sonic-danger:#c22a4a;--glass-border:rgba(0,110,150,.28)}
+html[data-theme="light"] body.sonic-theme{background:linear-gradient(180deg,#f7fafc,#e6edf3);color:var(--sonic-text)}
+html[data-theme="light"] body.sonic-theme::before{opacity:.15}
+html[data-theme="light"] body.sonic-theme::after{opacity:.25}
+html[data-theme="light"] .sonic-section-title,html[data-theme="light"] .sonic-detail-title,html[data-theme="light"] .sonic-holo-name,html[data-theme="light"] .sonic-book-title,html[data-theme="light"] .sonic-tl-title,html[data-theme="light"] .sonic-loan-title,html[data-theme="light"] .sonic-dash-stat .v,html[data-theme="light"] .sonic-stat-card .v,html[data-theme="light"] .sonic-avail-number,html[data-theme="light"] .sonic-donut-hole .pct,html[data-theme="light"] .sonic-badge-ach span,html[data-theme="light"] .sonic-quest-streak b{color:var(--sonic-text)}
+html[data-theme="light"] .sonic-donut-hole{background:#fff}
+html[data-theme="light"] ::-webkit-scrollbar-track{background:#dfe7ee}
+html[data-theme="light"] .sonic-btn{color:#fff}
+html[data-theme="light"] .sonic-tag.active,html[data-theme="light"] .sonic-mini-btn:hover{color:#fff}
+/* ===== SKIP LINK ===== */
+.sonic-skip-link{position:absolute;left:-9999px;top:0;z-index:100000;background:var(--sonic-neon);color:#000;padding:.7rem 1.2rem;border-radius:0 0 10px 0;font-weight:700;text-decoration:none}
+.sonic-skip-link:focus{left:0}
+/* ===== FOCUS & MOTION ===== */
+.sonic-theme a:focus-visible,.sonic-theme button:focus-visible,.sonic-theme input:focus-visible,.sonic-theme select:focus-visible,.sonic-theme textarea:focus-visible,[tabindex]:focus-visible{outline:3px solid var(--sonic-neon);outline-offset:2px;border-radius:4px}
+#sonicMain:focus{outline:none}
+@media (prefers-reduced-motion:reduce){.sonic-theme *,.sonic-theme *::before,.sonic-theme *::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+/* ===== A11Y / THEME TOOLBAR ===== */
+.sonic-a11y-bar{display:flex;align-items:center;gap:.3rem}
+.sonic-a11y-btn{background:rgba(0,240,255,.1);border:1px solid var(--glass-border);color:var(--sonic-text);border-radius:8px;min-width:32px;height:32px;padding:0 .5rem;cursor:pointer;font-weight:700;font-size:.75rem;display:inline-flex;align-items:center;justify-content:center;transition:.2s}
+.sonic-a11y-btn:hover{background:var(--sonic-neon);color:#000;border-color:var(--sonic-neon)}
+html[data-theme="light"] .sonic-a11y-btn:hover{color:#fff}
+/* ===== BREADCRUMB ===== */
+.sonic-breadcrumb{margin-bottom:1rem}
+.sonic-breadcrumb ol{list-style:none;display:flex;flex-wrap:wrap;gap:.4rem;margin:0;padding:0;font-size:.8rem;color:var(--sonic-muted)}
+.sonic-breadcrumb li+li::before{content:'›';margin-right:.4rem;color:var(--sonic-muted)}
+.sonic-breadcrumb a{color:var(--sonic-neon);text-decoration:none}
+.sonic-breadcrumb a:hover{text-decoration:underline}
+.sonic-breadcrumb [aria-current="page"]{color:var(--sonic-text)}
+/* ===== STATS PAGE ===== */
+.sonic-stats-cards{display:grid;grid-template-columns:repeat(6,1fr);gap:1rem;margin:1.5rem 0}
+.sonic-stat-card{background:var(--sonic-surface);border:1px solid var(--glass-border);border-radius:16px;padding:1.2rem;text-align:center;backdrop-filter:blur(10px)}
+.sonic-stat-card i{font-size:1.3rem;color:var(--sonic-neon);margin-bottom:.5rem}
+.sonic-stat-card .v{display:block;font-family:'Orbitron',sans-serif;font-size:1.5rem;font-weight:900;color:#fff}
+.sonic-stat-card label{color:var(--sonic-muted);font-size:.68rem;text-transform:uppercase;letter-spacing:1px}
+.sonic-stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:1.5rem}
+.sonic-stats-grid.three{grid-template-columns:repeat(3,1fr)}
+.sonic-bars{display:flex;flex-direction:column;gap:.5rem}
+.sonic-bar-row{display:flex;align-items:center;gap:.6rem;font-size:.78rem}
+.sonic-bar-row .lbl{flex:0 0 90px;color:var(--sonic-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-bar-row .track{flex:1;height:10px;background:rgba(0,0,0,.3);border-radius:5px;overflow:hidden}
+html[data-theme="light"] .sonic-bar-row .track{background:rgba(0,0,0,.08)}
+.sonic-bar-row .fill{display:block;height:100%;background:linear-gradient(90deg,var(--sonic-neon),var(--sonic-electric));border-radius:5px}
+.sonic-bar-row .fill.alt{background:linear-gradient(90deg,var(--sonic-plasma),var(--sonic-electric))}
+.sonic-bar-row .val{flex:0 0 40px;text-align:right;color:var(--sonic-text);font-weight:700}
+.sonic-stats-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:.6rem}
+.sonic-stats-list li a{display:flex;align-items:center;gap:.6rem;color:var(--sonic-text);text-decoration:none}
+.sonic-stats-list li a:hover span{color:var(--sonic-neon)}
+.sonic-stats-list img{width:30px;height:42px;object-fit:cover;border-radius:4px;border:1px solid var(--glass-border);flex:0 0 auto}
+.sonic-stats-list span{font-size:.82rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sonic-stats-list.visitors li{display:flex;align-items:center;gap:.6rem;font-size:.85rem}
+.sonic-stats-list.visitors .rank{flex:0 0 22px;height:22px;border-radius:50%;background:var(--sonic-neon);color:#000;font-style:normal;font-weight:800;display:inline-flex;align-items:center;justify-content:center;font-size:.7rem}
+.sonic-stats-list.visitors b{margin-left:auto;color:var(--sonic-neon)}
+@media (max-width:1000px){.sonic-stats-cards{grid-template-columns:repeat(3,1fr)}.sonic-stats-grid,.sonic-stats-grid.three{grid-template-columns:1fr}}
+@media (max-width:600px){.sonic-stats-cards{grid-template-columns:repeat(2,1fr)}}
+/* ===== BATCH 8 FIX v2: navbar lega & anti tumpang-tindih ===== */
+.sonic-navbar-inner{display:flex;align-items:center;gap:1.2rem;flex-wrap:nowrap}
+.sonic-brand{flex:0 0 auto;display:flex;align-items:center;gap:.6rem;min-width:0;max-width:220px}
+.sonic-brand img{height:38px;width:auto;object-fit:contain;flex:0 0 auto}
+.sonic-brand-text{position:static;min-width:0;overflow:hidden}
+.sonic-brand-text h1{font-size:1rem;margin:0;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sonic-brand-text h2{font-size:.65rem;margin:0;max-width:150px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sonic-nav{margin-left:auto;justify-content:flex-end;flex-wrap:nowrap;position:static;min-width:0;gap:.15rem}
+.sonic-nav>li>a{padding:.5rem .7rem}
+.sonic-nav .sonic-nav-label{white-space:nowrap}
+@media (max-width:1200px){.sonic-brand{max-width:160px}.sonic-brand-text h1,.sonic-brand-text h2{max-width:100px}}

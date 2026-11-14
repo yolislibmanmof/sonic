@@ -1,11 +1,14 @@
 <?php
-# @Filename: header.php (SONIC — BATCH 1: escaping meta, header keamanan, cache waras, bundle-ready)
+# @Filename: header.php (SONIC — BATCH 1 + BATCH 8: tema/a11y/skip-link, bundle-ready)
 if (!headers_sent()) {
     header('X-Content-Type-Options: nosniff');
     header('X-Frame-Options: SAMEORIGIN');
     header('Referrer-Policy: strict-origin-when-cross-origin');
-    // private+no-cache (bukan no-store) agar back/forward cache hidup → navigasi lebih smooth
-    header('Cache-Control: private, no-cache, must-revalidate');
+    // BATCH 6 FIX: JANGAN kirim Cache-Control kustom di sini.
+    // Di Laragon (Apache mod_fcgid), Cache-Control kustom bentrok dengan
+    // session-cache-limiter SLiMS pada halaman member/logout →
+    // "malformed header: Bad header: Cache-Control" → 500.
+    // Biarkan PHP/SLiMS yang mengatur cache sesi.
 }
 $sonic_host = sonic_host();
 $sonic_scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
@@ -15,6 +18,10 @@ $sonic_lib = htmlspecialchars($sysconf['library_name'] ?? '', ENT_QUOTES);
 $sonic_sub = htmlspecialchars($sysconf['library_subname'] ?? '', ENT_QUOTES);
 $sonic_img_src = htmlspecialchars(htmlspecialchars_decode($image_src ?? '', ENT_QUOTES), ENT_QUOTES);
 $sonic_notes_meta = htmlspecialchars(mb_substr(strip_tags($notes ?? ''), 0, 152), ENT_QUOTES);
+$sonic_theme_mode = (string)($sysconf['template']['sonic_theme_mode'] ?? 'auto');
+if (!in_array($sonic_theme_mode, ['auto','dark','light'], true)) $sonic_theme_mode = 'auto';
+$sonic_a11y_on = (int)($sysconf['template']['sonic_a11y_toolbar'] ?? 1) === 1;
+$sonic_stats_on = (int)($sysconf['template']['sonic_public_stats'] ?? 1) === 1;
 
 /**
  * SONIC VENDOR FALLBACK — pinjam aset vendor dari template lain bila tidak ada di sonic.
@@ -40,6 +47,16 @@ if (!function_exists('sonic_vendor')) {
 <html lang="<?= htmlspecialchars(substr($sysconf['default_lang'] ?? 'en', 0, 2)) ?>">
 <head>
     <meta charset="utf-8">
+    <script>
+    (function(){try{
+      var m=localStorage.getItem('sonicTheme')||<?php echo json_encode($sonic_theme_mode); ?>;
+      var d=document.documentElement;
+      var eff=function(x){return x==='auto'?(window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark'):x;};
+      d.setAttribute('data-theme',eff(m)); d.setAttribute('data-theme-mode',m);
+      var f=parseInt(localStorage.getItem('sonicFontScale')||'100',10);
+      if(f>=80&&f<=140){d.style.fontSize=f+'%';}
+    }catch(e){}})();
+    </script>
     <title><?php echo $sonic_pt; ?> | SONIC OPAC</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
@@ -99,7 +116,7 @@ if (!function_exists('sonic_vendor')) {
     if (is_file(__DIR__ . '/../assets/css/sonic.bundle.css')) {
         echo '<link rel="stylesheet" href="' . assets('css/sonic.bundle.css') . '?v=' . sonic_asset_ver('css/sonic.bundle.css') . '">' . "\n";
     } else {
-        foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash','sonic-premium'] as $scf) {
+        foreach (['sonic-base','sonic-navbar','sonic-hero','sonic-cards','sonic-detail','sonic-modal','sonic-footer','sonic-components','sonic-facet','sonic-marc','sonic-member','sonic-auth','sonic-admin','sonic-librarian','sonic-info','sonic-particles','sonic-suggest','sonic-result','sonic-member-dash','sonic-premium','sonic-discovery','sonic-platform'] as $scf) {
             echo '<link rel="stylesheet" href="' . assets('css/' . $scf . '.css') . '?v=' . sonic_asset_ver('css/' . $scf . '.css') . '">' . "\n";
         }
     }
@@ -123,6 +140,18 @@ if (!function_exists('sonic_vendor')) {
         'lang'     => substr($sysconf['default_lang'] ?? 'en', 0, 2),
         'base'     => CURRENT_TEMPLATE_DIR,
         'logged'   => !empty($is_login),
+        'discovery' => [
+            'rich'   => (int)($sysconf['template']['sonic_instant_rich'] ?? 1) === 1,
+            'dym'    => (int)($sysconf['template']['sonic_dym_fuzzy'] ?? 1) === 1,
+            'shelf'  => (int)($sysconf['template']['sonic_virtual_shelf'] ?? 1) === 1,
+            'coloan' => (int)($sysconf['template']['sonic_coloan'] ?? 1) === 1,
+            'year'   => (int)($sysconf['template']['sonic_year_slider'] ?? 1) === 1,
+        ],
+        'platform' => [
+            'theme' => $sonic_theme_mode,
+            'a11y'  => $sonic_a11y_on,
+            'stats' => $sonic_stats_on,
+        ],
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
     </script>
 
@@ -136,6 +165,7 @@ if (!function_exists('sonic_vendor')) {
     <?php if (isset($js)) echo $js; ?>
 </head>
 <body class="sonic-theme">
+<a class="sonic-skip-link" href="#sonicMain"><?= __('Skip to main content') ?></a>
 
 <!-- SONIC BOOT SCREEN -->
 <div id="sonicBoot">

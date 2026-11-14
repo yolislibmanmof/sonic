@@ -1,8 +1,9 @@
 <?php
 /**
- * Visitor template (SONIC — FINAL, kompatibel SLiMS 9.8)
+ * Visitor template (SONIC — FINAL + BATCH 6: Scan QR kartu anggota)
  * Kontrak core: POST counter=1, memberID, institution + CSRF (Volnix) → JSON {message,image,new_token}.
- * FIX: $sonic_last7_max didefinisikan eksplisit (sebelumnya hilang → fatal PHP 8).
+ * BATCH 6: tombol scan QR (html5-qrcode lokal) → isi memberID → check-in otomatis.
+ *          Input manual tetap ada; kamera hanya di HTTPS/localhost; toggle Kustomisasi.
  */
 $main_template_path = __DIR__ . '/login_template.inc.php';
 require_once __DIR__ . '/parts/_security.php';
@@ -19,6 +20,12 @@ $sonic_tpl = $sysconf['template'] ?? ($GLOBALS['sysconf']['template'] ?? []);
 $sonic_asset_base = ($sonic_tpl['dir'] ?? 'template') . '/' . ($sonic_tpl['theme'] ?? 'sonic') . '/assets/';
 $sonic_css_ver = @filemtime(__DIR__ . '/assets/css/sonic-visitor.css') ?: 1;
 $sonic_js_ver  = @filemtime(__DIR__ . '/assets/js/sonic-visitor.js') ?: 1;
+
+/* ===== BATCH 6: QR scanner (lokal, toggle) ===== */
+$sonic_kiosk_qr_on  = (int)($sysconf['template']['sonic_kiosk_qr'] ?? 1) === 1;
+$sonic_qr_lib_path  = __DIR__ . '/assets/plugin/html5-qrcode/html5-qrcode.min.js';
+$sonic_qr_lib_ok    = $sonic_kiosk_qr_on && is_file($sonic_qr_lib_path);
+$sonic_qr_lib_ver   = $sonic_qr_lib_ok ? (@filemtime($sonic_qr_lib_path) ?: 1) : 1;
 
 /* ===== STATISTIK KUNJUNGAN (cache 30 detik) ===== */
 $sonic_kiosk = sonic_cache('kiosk_stats_v2', 30, function () use ($dbs) {
@@ -53,12 +60,12 @@ if (!is_array($sonic_kiosk) || !isset($sonic_kiosk['stats'], $sonic_kiosk['last7
 }
 $sonic_stats = $sonic_kiosk['stats'];
 $sonic_last7 = $sonic_kiosk['last7'];
-$sonic_last7_max = max(1, max($sonic_last7)); // WAJIB ADA — pembagi sparkline
+$sonic_last7_max = max(1, max($sonic_last7 ?: [0])); // BATCH 4: anti ValueError bila cache kosong
 
 $sonic_stat_cards = [
     ['today', _('Today'),        'fa-calendar-day'],
     ['week',  _('This Week'),    'fa-calendar-week'],
-    ['month', _('This Month'),   'fa-calendar-alt'],
+    ['month',  _('This Month'),   'fa-calendar-alt'],
     ['year',  _('This Year'),    'fa-calendar-check'],
     ['total', _('Total'),        'fa-database'],
 ];
@@ -116,6 +123,19 @@ $sonic_stat_cards = [
                 </div>
                 <button type="submit" class="sonic-btn" style="width:100%;justify-content:center;">⚡ <?= _('Check In') ?></button>
             </form>
+
+            <?php if ($sonic_qr_lib_ok): ?>
+            <!-- BATCH 6: Scan QR kartu anggota -->
+            <div class="sonic-kiosk-scan">
+                <button type="button" class="sonic-btn sonic-scan-btn" id="sonicScanBtn"><i class="fas fa-qrcode"></i> <?= _('Scan Kartu Anggota') ?></button>
+                <div class="sonic-qr-panel" id="sonicQrPanel" hidden>
+                    <div class="sonic-qr-reader" id="sonicQrReader"></div>
+                    <p class="sonic-qr-status" id="sonicQrStatus"><?= _('Arahkan QR kartu anggota ke kamera') ?></p>
+                    <button type="button" class="sonic-mini-btn" id="sonicScanClose"><i class="fas fa-times"></i> <?= _('Tutup') ?></button>
+                </div>
+            </div>
+            <?php endif; ?>
+
             <p class="sonic-kiosk-hint"><i class="fas fa-keyboard"></i> <?= _('Scan / ketik ID anggota lalu Enter') ?></p>
         </div>
     </div>
@@ -137,6 +157,10 @@ window.SONIC_VISITOR_CFG = <?= json_encode([
     'action'  => $sonic_action,
     'welcome' => (string)($sysconf['template']['sonic_welcome_text'] ?? 'SELAMAT DATANG DI LAYANAN OPAC PERPUSTAKAAN'),
     'quotes'  => $sonic_kiosk_quotes,
+    'qr'      => $sonic_qr_lib_ok,
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?>;
 </script>
+<?php if ($sonic_qr_lib_ok): ?>
+<script src="<?= $sonic_asset_base ?>plugin/html5-qrcode/html5-qrcode.min.js?v=<?= $sonic_qr_lib_ver ?>"></script>
+<?php endif; ?>
 <script src="<?= $sonic_asset_base ?>js/sonic-visitor.js?v=<?= $sonic_js_ver ?>"></script>

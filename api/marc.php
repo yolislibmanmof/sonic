@@ -1,8 +1,7 @@
 <?php
 /**
- * SONIC OPAC — MARC21 (ISO 2709) exporter mandiri (BATCH 2).
+ * SONIC OPAC — MARC21 (ISO 2709) exporter (BATCH 2 + BATCH 8: rate-limit + ETag)
  * Read-only, output application/marc. Leader/directory terverifikasi benar.
- * Tambahan: guard tanggal, 041 bahasa, 520 abstrak, 856 URL lampiran eksternal.
  */
 define('INDEX_AUTH', '1');
 require_once '../../../sysconfig.inc.php';
@@ -10,6 +9,12 @@ require_once '../../../sysconfig.inc.php';
 header('Content-Type: application/marc; charset=utf-8');
 header('Cache-Control: no-store');
 header('X-Content-Type-Options: nosniff');
+
+/* BATCH 8: rate-limit + ETag (graceful) */
+if (is_file(__DIR__ . '/../parts/_platform.php')) {
+    require_once __DIR__ . '/../parts/_platform.php';
+    if (function_exists('sonic_api_rate')) sonic_api_rate('marc', 30, 60);
+}
 
 $id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 if ($id <= 0 || !isset($dbs) || !is_object($dbs)) { http_response_code(400); exit('bad id'); }
@@ -21,7 +26,6 @@ $clean = function ($s) {
     return preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F]/', '', $s);
 };
 
-/* ---- Ambil data ---- */
 $b = null;
 try {
     $q = $dbs->query('SELECT * FROM biblio WHERE biblio_id=' . $id);
@@ -41,7 +45,6 @@ try {
     if ($q) while ($r = $q->fetch_assoc()) { if (trim((string)$r['file_url']) !== '') $urls[] = $r; }
 } catch (Throwable $e) {}
 
-/* ---- Builder field ---- */
 $fields = [];
 $ctl = function ($tag, $val) use (&$fields, $FT, $clean) { $fields[] = ['tag' => $tag, 'data' => $clean($val) . $FT]; };
 $fld = function ($tag, $i1, $i2, $subs) use (&$fields, $FT, $SF, $clean) {
@@ -79,7 +82,6 @@ for ($i = 1; $i < count($authors); $i++) $fld('700', '1', ' ', [['a', $authors[$
 foreach ($locs as $l) $fld('852', ' ', ' ', [['a', $l], ['j', $b['call_number'] ?? '']]);
 foreach ($urls as $u) $fld('856', '4', ' ', [['u', $u['file_url']], ['y', $u['file_title'] ?? '']]);
 
-/* ---- Rakit ISO 2709 ---- */
 $dir = ''; $data = ''; $offset = 0;
 foreach ($fields as $f) {
     $len = strlen($f['data']);
@@ -93,5 +95,5 @@ $total = $base + strlen($data) + 1;
 $leader = sprintf('%05d', $total) . 'nam a22' . sprintf('%05d', $base) . ' a 4500';
 
 header('Content-Disposition: attachment; filename=biblio-' . $id . '.mrc');
-echo $leader . $dir . $data . $RT;
-exit;
+$marc = $leader . $dir . $data . $RT;
+if (function_exists('sonic_etag_send')) { sonic_etag_send($marc, 'application/marc; charset=utf-8', 300); } else { echo $marc; exit; }

@@ -1,9 +1,11 @@
 /**
- * SONIC FACET — Fase 2: multi-select + sort, satu kontrak `filter` JSON (core).
+ * SONIC FACET — Fase 2 + BATCH 5: multi-select + sort + YEAR-RANGE SLIDER.
+ * Satu kontrak `filter` JSON (core). Slider menulis filter.years="dari;sampai"
+ * → DefaultEngine core: publish_year BETWEEN ? AND ? (kontrak terverifikasi v9.8.0).
  */
 jQuery(function ($) {
     'use strict';
-    var FIELDS = ['title', 'author', 'subject', 'isbn', 'callnumber', 'publishyear'];
+    var FIELDS = ['title', 'author', 'subject', 'isbn', 'callnumber', 'publishyear', 'years'];
     var MULTI = ['gmd', 'location', 'colltype'];
 
     function readState() {
@@ -33,6 +35,35 @@ jQuery(function ($) {
         return 'index.php?' + p.toString();
     }
 
+    /* ===== BATCH 5: year-range slider (ion.rangeSlider sudah dimuat di header) ===== */
+    var $yr = $('#sonicYearRange');
+    var yrMin = 0, yrMax = 0;
+    function sliderYears() {
+        if (!$yr.length) return '';
+        var inst = $yr.data('ionRangeSlider');
+        if (!inst) return '';
+        var r = inst.result;
+        return (r.from > yrMin || r.to < yrMax) ? (r.from + ';' + r.to) : '';
+    }
+    function initYearSlider(st) {
+        if (!$yr.length) return;
+        yrMin = parseInt($yr.attr('data-min'), 10) || 0;
+        yrMax = parseInt($yr.attr('data-max'), 10) || 0;
+        if (!(yrMax > yrMin) || !$.fn.ionRangeSlider) { $yr.closest('.sonic-facet-group').hide(); return; }
+        var from = yrMin, to = yrMax;
+        var m = /^(\d{1,4});(\d{1,4})$/.exec(st.years || '');
+        if (m) {
+            from = Math.max(yrMin, Math.min(yrMax, parseInt(m[1], 10)));
+            to = Math.max(yrMin, Math.min(yrMax, parseInt(m[2], 10)));
+            if (from > to) { from = yrMin; to = yrMax; }
+        }
+        $yr.ionRangeSlider({
+            type: 'double', min: yrMin, max: yrMax, from: from, to: to,
+            grid: true, grid_num: 4, hide_min_max: true,
+            onFinish: function () { apply(); }
+        });
+    }
+
     function collect() {
         var s = readState();
         $('#sonicFacetForm input[type="checkbox"]').each(function () {
@@ -44,6 +75,7 @@ jQuery(function ($) {
         });
         var py = $('#sonicFacetForm input[name="publishyear"]').val();
         s.publishyear = (py || '').trim();
+        s.years = sliderYears();
         var sort = $('#sonicSort').val();
         s.sort = sort || '';
         return s;
@@ -61,6 +93,7 @@ jQuery(function ($) {
     });
     $('#sonicFacetForm input[name="publishyear"]').val(st.publishyear);
     if ($('#sonicSort').length) $('#sonicSort').val(st.sort);
+    initYearSlider(st);
 
     // Interaksi
     $(document).on('change', '#sonicFacetForm input[type="checkbox"]', function () {

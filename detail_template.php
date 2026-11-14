@@ -1,5 +1,10 @@
 <?php
-/* @Filename: detail_template.php (SONIC v6 — Detail Record Ultimate FINAL, scope-safe) */
+/* @Filename: detail_template.php (SONIC v6 — Detail Record Ultimate FINAL, scope-safe)
+ * BATCH 4: sitasi akurat (MLA italic judul, tahun n.d., tanpa punctuation yatim),
+ *          export RIS/BibTeX/EndNote bebas double-escape, formatter pengarang tahan nama 1 kata,
+ *          dedup buku serupa strict, URL atribut valid (&amp;), toast aksesibel.
+ *          Semua fitur lama dipertahankan penuh.
+ */
 
 /* ===== 1. DB BOOTSTRAP ===== */
 if (!isset($dbs) || !is_object($dbs)) {
@@ -9,16 +14,10 @@ if (!isset($dbs) || !is_object($dbs)) {
     }
 }
 $sonic_has_db = is_object($dbs);
+$biblio_id = (int)($biblio_id ?? 0);
 
 /* ===== HELPERS (load-order safe) ===== */
 require_once __DIR__ . '/parts/_security.php';
-    function sonic_kses($html) {
-        $html = (string)$html;
-        $html = preg_replace('#<(script|style|iframe|object|embed|form)\b[^>]*>.*?</\1>#is', '', $html);
-        $html = preg_replace('#\son\w+\s*=\s*("[^"]*"|\'[^\']*\'|[^\s>]+)#i', '', $html);
-        $html = preg_replace('#(href|src)\s*=\s*(["\'])\s*javascript:[^"\']*\2#i', '$1=$2#$2', $html);
-        return $html;
-    }
 if (!function_exists('sonic_is_bookmarked')) {
     function sonic_is_bookmarked($biblio_id) {
         global $dbs; static $set = null;
@@ -37,15 +36,24 @@ if (!function_exists('sonic_trim')) {
     function sonic_trim($s, $n) { $s = strip_tags((string)$s); if (function_exists('mb_strimwidth')) return mb_strimwidth($s, 0, $n, '...'); return (strlen($s) > $n) ? substr($s, 0, $n) . '...' : $s; }
 }
 if (!function_exists('sonic_format_authors')) {
+    /** BATCH 4: tahan nama 1 kata, spasi ganda, dan "Nama Belakang, Depan Tengah". */
     function sonic_format_authors($authors_arr) {
         if (!is_array($authors_arr)) return '';
         $list = []; $total = count($authors_arr);
         foreach ($authors_arr as $order => $data) {
-            $name = is_array($data) ? ($data['author_name'] ?? '') : (string)$data; $name = trim($name);
+            $name = trim(is_array($data) ? ($data['author_name'] ?? '') : (string)$data);
             if ($name === '') continue;
-            $chunk = explode(' ', $name); $last_idx = array_key_last($chunk); $last = $chunk[$last_idx]; $first = $chunk[0] ?? '';
-            if (!str_ends_with(trim($first), ',')) { unset($chunk[$last_idx]); if ($order > 0 && $total > 2) continue; $list[] = $last . ', ' . implode(' ', array_map(fn($n) => ucfirst(substr($n, 0, 1)) . '.', $chunk)); }
-            else { if ($order > 0 && $total > 2) continue; unset($chunk[0]); $list[] = $first . ' ' . implode(' ', array_map(fn($n) => ucfirst(substr($n, 0, 1)) . '.', $chunk)); }
+            if ($order > 0 && $total > 2) continue; // APA: pengarang pertama + et al.
+            $parts = preg_split('/\s+/', $name, -1, PREG_SPLIT_NO_EMPTY);
+            if (count($parts) === 1) { $list[] = $parts[0]; continue; }
+            $first = $parts[0];
+            $init = fn($n) => ucfirst(mb_substr($n, 0, 1)) . '.';
+            if (str_ends_with($first, ',')) {
+                $list[] = $first . ' ' . implode(' ', array_map($init, array_slice($parts, 1)));
+            } else {
+                $last = array_pop($parts);
+                $list[] = $last . ', ' . implode(' ', array_map($init, $parts));
+            }
         }
         return implode(', ', $list) . ($total > 2 ? ' et al.' : '');
     }
@@ -61,7 +69,7 @@ if (!function_exists('sonic_similar_cover')) {
 $sonic_bookmarked = function_exists('sonic_is_bookmarked') ? sonic_is_bookmarked($biblio_id) : isset($_SESSION['bookmark'][$biblio_id]);
 $setBookmarked = $sonic_bookmarked ? 'active' : '';
 $sonic_cover_raw = '';
-if ($sonic_has_db) { try { $_cq = $dbs->query('SELECT image FROM biblio WHERE biblio_id=' . (int)$biblio_id); if ($_cq && ($_cr = $_cq->fetch_row())) $sonic_cover_raw = (string)($_cr[0] ?? ''); } catch (Throwable $e) {} }
+if ($sonic_has_db) { try { $_cq = $dbs->query('SELECT image FROM biblio WHERE biblio_id=' . $biblio_id); if ($_cq && ($_cr = $_cq->fetch_row())) $sonic_cover_raw = (string)($_cr[0] ?? ''); } catch (Throwable $e) {} }
 if ($sonic_cover_raw === '' && isset($image) && is_string($image) && $image !== '') $sonic_cover_raw = $image;
 if ($sonic_cover_raw !== '' && !file_exists('./images/docs/' . $sonic_cover_raw)) $sonic_cover_raw = '';
 $sonic_cover_url = !empty($sonic_cover_raw) ? './lib/minigalnano/createthumb.php?filename=' . urlencode('images/docs/' . $sonic_cover_raw) . '&width=240' : './lib/minigalnano/createthumb.php?filename=images/default/image.png&width=240';
@@ -69,72 +77,97 @@ $sonic_cover_large = !empty($sonic_cover_raw) ? './lib/minigalnano/createthumb.p
 $sonic_scheme = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
 $sonic_host = function_exists('sonic_host') ? sonic_host() : preg_replace('/[^A-Za-z0-9.\-:\[\]]/', '', $_SERVER['HTTP_HOST'] ?? 'localhost');
 $sonic_cover_abs = $sonic_scheme . '://' . $sonic_host . SWB . ($sonic_cover_raw !== '' ? 'images/docs/' . rawurlencode($sonic_cover_raw) : 'images/default/image.png');
-$sonic_detail_abs = $sonic_scheme . '://' . $sonic_host . SWB . 'index.php?p=show_detail&id=' . (int)$biblio_id;
+$sonic_detail_abs = $sonic_scheme . '://' . $sonic_host . SWB . 'index.php?p=show_detail&id=' . $biblio_id;
 
 /* ===== 4. AVAILABILITY + SHELF ===== */
 $sonic_total_items = 0; $sonic_borrowed_items = 0; $sonic_available_items = 0; $sonic_locations = [];
 if ($sonic_has_db) {
     try {
-        $_q = $dbs->query('SELECT COUNT(*) FROM item WHERE biblio_id=' . (int)$biblio_id); $sonic_total_items = (int)($_q->fetch_row()[0] ?? 0);
-        $_q2 = $dbs->query('SELECT COUNT(*) FROM loan AS l INNER JOIN item AS i ON l.item_code=i.item_code WHERE l.is_lent=1 AND l.is_return=0 AND i.biblio_id=' . (int)$biblio_id); $sonic_borrowed_items = (int)($_q2->fetch_row()[0] ?? 0);
+        $_q = $dbs->query('SELECT COUNT(*) FROM item WHERE biblio_id=' . $biblio_id); $sonic_total_items = (int)($_q->fetch_row()[0] ?? 0);
+        $_q2 = $dbs->query('SELECT COUNT(*) FROM loan AS l INNER JOIN item AS i ON l.item_code=i.item_code WHERE l.is_lent=1 AND l.is_return=0 AND i.biblio_id=' . $biblio_id); $sonic_borrowed_items = (int)($_q2->fetch_row()[0] ?? 0);
         $sonic_available_items = max(0, $sonic_total_items - $sonic_borrowed_items);
-        $_q3 = $dbs->query('SELECT l.location_name, COUNT(*) c FROM item i JOIN mst_location l ON i.location_id=l.location_id WHERE i.biblio_id=' . (int)$biblio_id . ' GROUP BY l.location_name');
+        $_q3 = $dbs->query('SELECT l.location_name, COUNT(*) c FROM item i JOIN mst_location l ON i.location_id=l.location_id WHERE i.biblio_id=' . $biblio_id . ' GROUP BY l.location_name');
         if ($_q3) while ($r = $_q3->fetch_assoc()) $sonic_locations[] = $r;
     } catch (Throwable $e) {}
 }
 
 /* ===== 5. AUTHORS ===== */
 $sonic_author_list = [];
-if ($sonic_has_db) { try { $_aq = $dbs->query('SELECT a.author_name FROM biblio_author ba JOIN mst_author a ON ba.author_id=a.author_id WHERE ba.biblio_id=' . (int)$biblio_id . ' ORDER BY ba.level ASC'); if ($_aq) while ($_r = $_aq->fetch_assoc()) $sonic_author_list[] = ['author_name' => $_r['author_name']]; } catch (Throwable $e) {} }
+if ($sonic_has_db) { try { $_aq = $dbs->query('SELECT a.author_name FROM biblio_author ba JOIN mst_author a ON ba.author_id=a.author_id WHERE ba.biblio_id=' . $biblio_id . ' ORDER BY ba.level ASC'); if ($_aq) while ($_r = $_aq->fetch_assoc()) $sonic_author_list[] = ['author_name' => $_r['author_name']]; } catch (Throwable $e) {} }
 if (count($sonic_author_list) === 0 && isset($authors) && is_string($authors) && trim(strip_tags($authors)) !== '') {
     foreach (preg_split('/(<br\s*\/?>|;|\n)/i', strip_tags($authors)) as $_nm) { $_nm = trim(html_entity_decode($_nm)); if ($_nm !== '') $sonic_author_list[] = ['author_name' => $_nm]; }
 }
 $sonic_authors_string = sonic_format_authors($sonic_author_list);
 
-/* ===== 6. CITATIONS ===== */
-$sonic_year = trim((string)($publish_year ?? '')) !== '' ? $publish_year : date('Y');
+/* ===== 6. CITATIONS (BATCH 4: nilai mentah untuk export, escape hanya saat tampil) ===== */
+$sonic_year_raw = trim((string)($publish_year ?? ''));
+$sonic_year = $sonic_year_raw !== '' ? $sonic_year_raw : 'n.d.'; // APA: tanpa tahun = n.d. (bukan tahun server)
 $sonic_title_clean = strip_tags(stripslashes($title ?? ''));
-$sonic_edition = htmlspecialchars($edition ?? '', ENT_QUOTES);
-$sonic_publisher = htmlspecialchars($publisher_name ?? '', ENT_QUOTES);
-$sonic_place = htmlspecialchars($publish_place ?? '', ENT_QUOTES);
+$sonic_edition_raw = trim((string)($edition ?? ''));
+$sonic_publisher_raw = trim((string)($publisher_name ?? ''));
+$sonic_place_raw = trim((string)($publish_place ?? ''));
 $sonic_gmd = (($gmd_name ?? '') == 'Text') ? 'Print' : ($gmd_name ?? '');
 $sonic_title_disp = htmlspecialchars($sonic_title_clean, ENT_QUOTES);
 $sonic_authors_disp = htmlspecialchars($sonic_authors_string, ENT_QUOTES);
-$sonic_gmd_disp = htmlspecialchars($sonic_gmd, ENT_QUOTES);
-$sonic_year_disp = htmlspecialchars((string)$sonic_year, ENT_QUOTES);
+$sonic_edition_disp = htmlspecialchars($sonic_edition_raw, ENT_QUOTES);
+$sonic_publisher_disp = htmlspecialchars($sonic_publisher_raw, ENT_QUOTES);
+$sonic_place_disp = htmlspecialchars($sonic_place_raw, ENT_QUOTES);
+$sonic_gmd_disp = htmlspecialchars((string)$sonic_gmd, ENT_QUOTES);
+$sonic_year_disp = htmlspecialchars($sonic_year, ENT_QUOTES);
+
 $sonic_citations = [];
-$sonic_citations['APA'] = $sonic_authors_disp ? "{$sonic_authors_disp} ({$sonic_year_disp}). <em>{$sonic_title_disp}</em>" . ($sonic_edition ? " ({$sonic_edition})" : "") . ". {$sonic_publisher}." : "<em>{$sonic_title_disp}</em> ({$sonic_year_disp}). {$sonic_publisher}.";
-$sonic_citations['Chicago'] = $sonic_authors_disp ? "{$sonic_authors_disp}. <em>{$sonic_title_disp}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}." : "<em>{$sonic_title_disp}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}.";
-$sonic_citations['MLA'] = $sonic_authors_disp ? "{$sonic_authors_disp}. \"{$sonic_title_disp}\". <em>{$sonic_edition}</em>, {$sonic_publisher}, {$sonic_year_disp}." : "<em>{$sonic_title_disp}</em>. {$sonic_edition}, {$sonic_publisher}, {$sonic_year_disp}.";
-$sonic_citations['Turabian'] = $sonic_authors_disp ? "{$sonic_authors_disp}. <em>{$sonic_title_disp}</em>. {$sonic_edition} {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}." : "<em>{$sonic_title_disp}</em>. {$sonic_place}: {$sonic_publisher}, {$sonic_year_disp}. {$sonic_gmd_disp}.";
+// BATCH 4: hindari titik ganda ("B.." / "n.d..") — rtrim titik lalu bubuhkan satu titik.
+$sonic_author_prefix = $sonic_authors_disp !== '' ? rtrim($sonic_authors_disp, '.') . '. ' : '';
+// APA 7: Author (Year). Title (Edition). Publisher.
+$sonic_citations['APA'] = ($sonic_authors_disp !== '' ? $sonic_authors_disp . ' ' : '')
+    . '(' . $sonic_year_disp . '). <em>' . $sonic_title_disp . '</em>'
+    . ($sonic_edition_disp !== '' ? ' (' . $sonic_edition_disp . ')' : '') . '.'
+    . ($sonic_publisher_disp !== '' ? ' ' . $sonic_publisher_disp . '.' : '');
+// MLA 9: Author. Title (italic). Edition, Publisher, Year.  (FIX: judul yang italic, bukan edisi)
+$sonic_mla_tail = implode(', ', array_filter([$sonic_edition_disp, $sonic_publisher_disp, $sonic_year_disp], fn($x) => $x !== ''));
+$sonic_citations['MLA'] = $sonic_author_prefix
+    . '<em>' . $sonic_title_disp . '</em>.'
+    . ($sonic_mla_tail !== '' ? ' ' . rtrim($sonic_mla_tail, '.') . '.' : '');
+// Chicago / Turabian: Author. Title. Edition. Place: Publisher, Year. GMD.
+$sonic_pub_block = $sonic_year_disp;
+if ($sonic_place_disp !== '' && $sonic_publisher_disp !== '') $sonic_pub_block = $sonic_place_disp . ': ' . $sonic_publisher_disp . ', ' . $sonic_year_disp;
+elseif ($sonic_publisher_disp !== '') $sonic_pub_block = $sonic_publisher_disp . ', ' . $sonic_year_disp;
+elseif ($sonic_place_disp !== '') $sonic_pub_block = $sonic_place_disp . ', ' . $sonic_year_disp;
+$sonic_chi = $sonic_author_prefix
+    . '<em>' . $sonic_title_disp . '</em>.'
+    . ($sonic_edition_disp !== '' ? ' ' . rtrim($sonic_edition_disp, '.') . '.' : '')
+    . ' ' . rtrim($sonic_pub_block, '.') . '.'
+    . ($sonic_gmd_disp !== '' ? ' ' . rtrim($sonic_gmd_disp, '.') . '.' : '');
+$sonic_citations['Chicago'] = $sonic_chi;
+$sonic_citations['Turabian'] = $sonic_chi;
 
 /* ===== 7. SIMILAR (DDC dulu, lalu pengarang/subjek) — cache 1 jam ===== */
 $sonic_similar_books = []; $sonic_class = '';
-if ($sonic_has_db) { try { $cq = $dbs->query('SELECT classification FROM biblio WHERE biblio_id=' . (int)$biblio_id); if ($cq && ($cr = $cq->fetch_row())) $sonic_class = trim((string)$cr[0]); } catch (Throwable $e) {} }
+if ($sonic_has_db) { try { $cq = $dbs->query('SELECT classification FROM biblio WHERE biblio_id=' . $biblio_id); if ($cq && ($cr = $cq->fetch_row())) $sonic_class = trim((string)$cr[0]); } catch (Throwable $e) {} }
 if ($sonic_has_db) {
-    $sonic_similar_books = sonic_cache('similar_' . (int)$biblio_id, 3600, function () use ($dbs, $biblio_id, $sonic_class, $sonic_author_list) {
+    $sonic_similar_books = sonic_cache('similar_' . $biblio_id, 3600, function () use ($dbs, $biblio_id, $sonic_class, $sonic_author_list) {
         $books = [];
         try {
             if ($sonic_class !== '') {
                 $ddc = $dbs->real_escape_string(substr($sonic_class, 0, 3));
-                $q = $dbs->query("SELECT b.biblio_id, b.title, b.image, GROUP_CONCAT(ma.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ma ON ba.author_id=ma.author_id WHERE b.classification LIKE '{$ddc}%' AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
+                $q = $dbs->query("SELECT b.biblio_id, b.title, b.image, GROUP_CONCAT(ma.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ma ON ba.author_id=ma.author_id WHERE b.classification LIKE '{$ddc}%' AND b.biblio_id != " . $biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
                 if ($q) while ($r = $q->fetch_assoc()) $books[] = $r;
             }
             if (count($books) < 4) {
                 $names = []; foreach (array_slice($sonic_author_list, 0, 2) as $a) $names[] = $dbs->real_escape_string($a['author_name']);
                 if ($names) {
                     $conds = array_map(fn($n) => "mst_author.author_name LIKE '%{$n}%'", $names);
-                    $q = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ON b.biblio_id=biblio_author.biblio_id LEFT JOIN mst_author ON biblio_author.author_id=mst_author.author_id WHERE (" . implode(' OR ', $conds) . ") AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
-                    if ($q) while ($r = $q->fetch_assoc()) { if (!in_array($r['biblio_id'], array_column($books, 'biblio_id'))) $books[] = $r; }
+                    $q = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_author ON b.biblio_id=biblio_author.biblio_id LEFT JOIN mst_author ON biblio_author.author_id=mst_author.author_id WHERE (" . implode(' OR ', $conds) . ") AND b.biblio_id != " . $biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT 6");
+                    if ($q) while ($r = $q->fetch_assoc()) { if (!in_array((int)$r['biblio_id'], array_map('intval', array_column($books, 'biblio_id')), true)) $books[] = $r; }
                 }
             }
             if (count($books) < 4) {
-                $topics = []; $tq = $dbs->query("SELECT mt.topic FROM biblio_topic bt JOIN mst_topic mt ON bt.topic_id=mt.topic_id WHERE bt.biblio_id=" . (int)$biblio_id . " LIMIT 3");
+                $topics = []; $tq = $dbs->query("SELECT mt.topic FROM biblio_topic bt JOIN mst_topic mt ON bt.topic_id=mt.topic_id WHERE bt.biblio_id=" . $biblio_id . " LIMIT 3");
                 if ($tq) while ($r = $tq->fetch_row()) $topics[] = $dbs->real_escape_string($r[0]);
                 if ($topics) {
                     $tconds = array_map(fn($t) => "mt.topic LIKE '%{$t}%'", $topics);
-                    $q2 = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_topic bt ON b.biblio_id=bt.biblio_id LEFT JOIN mst_topic mt ON bt.topic_id=mt.topic_id LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ON ba.author_id=mst_author.author_id WHERE (" . implode(' OR ', $tconds) . ") AND b.biblio_id != " . (int)$biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT " . (6 - count($books)));
-                    if ($q2) while ($r = $q2->fetch_assoc()) { if (!in_array($r['biblio_id'], array_column($books, 'biblio_id'))) $books[] = $r; }
+                    $q2 = $dbs->query("SELECT DISTINCT b.biblio_id, b.title, b.image, GROUP_CONCAT(mst_author.author_name SEPARATOR ' - ') AS author FROM biblio b LEFT JOIN biblio_topic bt ON b.biblio_id=bt.biblio_id LEFT JOIN mst_topic mt ON bt.topic_id=mt.topic_id LEFT JOIN biblio_author ba ON b.biblio_id=ba.biblio_id LEFT JOIN mst_author ON ba.author_id=mst_author.author_id WHERE (" . implode(' OR ', $tconds) . ") AND b.biblio_id != " . $biblio_id . " AND b.title IS NOT NULL GROUP BY b.biblio_id ORDER BY b.last_update DESC LIMIT " . (6 - count($books)));
+                    if ($q2) while ($r = $q2->fetch_assoc()) { if (!in_array((int)$r['biblio_id'], array_map('intval', array_column($books, 'biblio_id')), true)) $books[] = $r; }
                 }
             }
         } catch (Throwable $e) {}
@@ -146,7 +179,7 @@ $sonic_csrf = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getToken() 
 $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTokenName() : 'csrf_token';
 ?>
 
-<section class="sonic-detail-revolution" data-biblio-id="<?= (int)$biblio_id ?>" data-logged="<?= $sonic_logged ? 1 : 0 ?>">
+<section class="sonic-detail-revolution" data-biblio-id="<?= $biblio_id ?>" data-logged="<?= $sonic_logged ? 1 : 0 ?>">
     <div class="sonic-detail-sidebar">
         <div class="sonic-book-3d-container">
             <div class="sonic-book-3d" id="sonicBook3D">
@@ -199,22 +232,29 @@ $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTok
             <a href="javascript:void(0)" class="sonic-action-btn add-to-chart-button" data-biblio="<?= $biblio_id ?>"><i class="fas fa-shopping-basket"></i> <?= __('Add to Basket') ?></a>
             <a href="javascript:void(0)" class="sonic-action-btn" id="sonicZoomBtn" data-large="<?= htmlspecialchars($sonic_cover_large) ?>"><i class="fas fa-search-plus"></i> Perbesar Sampul</a>
             <a href="javascript:void(0)" class="sonic-action-btn" id="sonicQrBtn" data-url="<?= htmlspecialchars($sonic_detail_abs) ?>"><i class="fas fa-qrcode"></i> QR Buku</a>
-            <a href="index.php?p=show_detail&id=<?= $biblio_id ?>&MARC=true" class="sonic-action-btn sonic-marc-trigger"><i class="fas fa-terminal"></i> MARC View</a>
+            <a href="index.php?p=show_detail&amp;id=<?= $biblio_id ?>&amp;MARC=true" class="sonic-action-btn sonic-marc-trigger"><i class="fas fa-terminal"></i> MARC View</a>
         </div>
     </div>
 
     <div class="sonic-detail-main">
+                <nav class="sonic-breadcrumb" aria-label="<?= __('Breadcrumb') ?>">
+            <ol>
+                <li><a href="index.php"><?= __('Home') ?></a></li>
+                <li><a href="index.php?search=search"><?= __('Collection') ?></a></li>
+                <li aria-current="page"><?= htmlspecialchars(sonic_trim($title ?? '', 60)) ?></li>
+            </ol>
+        </nav>
         <div class="sonic-detail-header">
             <p class="sonic-detail-category"><i class="fas fa-book"></i> <?= htmlspecialchars($gmd_name ?? '') ?></p>
             <h1 class="sonic-detail-title"><?= htmlspecialchars(stripslashes($title ?? '')) ?></h1>
             <div class="sonic-detail-authors">
                 <?php if (is_array($authors ?? null)): ?>
-                    <?php foreach ($authors as $a): ?><a href="index.php?author=<?= urlencode(is_array($a) ? ($a['author_name'] ?? '') : $a) ?>&search=search"><?= htmlspecialchars(is_array($a) ? ($a['author_name'] ?? '') : $a) ?></a><?php endforeach; ?>
+                    <?php foreach ($authors as $a): ?><a href="index.php?author=<?= urlencode(is_array($a) ? ($a['author_name'] ?? '') : $a) ?>&amp;search=search"><?= htmlspecialchars(is_array($a) ? ($a['author_name'] ?? '') : $a) ?></a><?php endforeach; ?>
                 <?php else: ?>
-                    <?= function_exists('sonic_kses') ? sonic_kses(str_replace("<br />", ' ', $authors ?? '')) : str_replace("<br />", ' ', $authors ?? '') ?>
+                    <?= function_exists('sonic_kses') ? sonic_kses(preg_replace('/<br\s*\/?>/i', ' ', $authors ?? '')) : htmlspecialchars(preg_replace('/<br\s*\/?>/i', ' ', $authors ?? '')) ?>
                 <?php endif; ?>
             </div>
-            <div class="sonic-rating-summary" id="sonicRatingSummary" data-biblio="<?= (int)$biblio_id ?>"></div>
+            <div class="sonic-rating-summary" id="sonicRatingSummary" data-biblio="<?= $biblio_id ?>"></div>
         </div>
 
         <div class="sonic-detail-tabs">
@@ -304,7 +344,7 @@ $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTok
                     <?php if ($sonic_logged): ?>
                     <form class="sonic-review-form" id="sonicReviewForm">
                         <input type="hidden" name="action" value="add">
-                        <input type="hidden" name="biblio_id" value="<?= (int)$biblio_id ?>">
+                        <input type="hidden" name="biblio_id" value="<?= $biblio_id ?>">
                         <input type="hidden" name="<?= htmlspecialchars($sonic_csrf_name) ?>" value="<?= htmlspecialchars($sonic_csrf) ?>">
                         <div class="sonic-review-stars" id="sonicReviewStars">
                             <?php for ($i = 1; $i <= 5; $i++): ?><button type="button" data-star="<?= $i ?>" aria-label="<?= $i ?> bintang"><i class="far fa-star"></i></button><?php endfor; ?>
@@ -314,7 +354,7 @@ $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTok
                         <button type="submit" class="sonic-btn"><i class="fas fa-paper-plane"></i> Kirim Ulasan</button>
                     </form>
                     <?php else: ?>
-                    <p class="sonic-review-login"><a href="index.php?p=member&destination=<?= urlencode($sonic_detail_abs) ?>">Login</a> untuk menulis ulasan.</p>
+                    <p class="sonic-review-login"><a href="index.php?p=member&amp;destination=<?= urlencode($sonic_detail_abs) ?>">Login</a> untuk menulis ulasan.</p>
                     <?php endif; ?>
                 </div>
             </div>
@@ -331,7 +371,7 @@ $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTok
                     <p class="sonic-similar-sub">Buku lain dengan klasifikasi, pengarang, atau subjek yang mirip</p>
                     <div class="sonic-biblio-grid">
                         <?php foreach ($sonic_similar_books as $book): ?>
-                        <a class="sonic-book" href="index.php?p=show_detail&id=<?= (int)$book['biblio_id'] ?>">
+                        <a class="sonic-book" href="index.php?p=show_detail&amp;id=<?= (int)$book['biblio_id'] ?>">
                             <div class="sonic-book-cover"><img loading="lazy" src="<?= sonic_similar_cover($book['image'] ?? '') ?>" alt="<?= htmlspecialchars($book['title']) ?>" onerror="this.src='./images/default/image.png'"></div>
                             <h4 class="sonic-book-title"><?= htmlspecialchars($book['title']) ?></h4>
                             <p class="sonic-book-author"><?= htmlspecialchars($book['author'] ?? '') ?></p>
@@ -346,20 +386,29 @@ $sonic_csrf_name = class_exists('\Volnix\CSRF\CSRF') ? \Volnix\CSRF\CSRF::getTok
 </section>
 
 <div id="heartBurst" class="sonic-heart-burst"></div>
-<div id="copyToast" class="sonic-copy-toast"><i class="fas fa-check-circle"></i><span id="copyToastText">Disalin!</span></div>
+<div id="copyToast" class="sonic-copy-toast" role="status" aria-live="polite"><i class="fas fa-check-circle"></i><span id="copyToastText">Disalin!</span></div>
 
+<?php /* BATCH 4: nilai MENTAH (tanpa htmlspecialchars) agar RIS/BibTeX/EndNote bersih dari &amp; dkk. */ ?>
 <script type="application/json" id="sonicCiteData"><?= json_encode([
-    'id' => (int)$biblio_id, 'title' => $sonic_title_clean,
+    'id' => $biblio_id, 'title' => $sonic_title_clean,
     'authors' => array_values(array_column($sonic_author_list, 'author_name')),
-    'year' => (string)$sonic_year, 'publisher' => $sonic_publisher, 'place' => $sonic_place,
-    'edition' => $sonic_edition, 'isbn' => $isbn_issn ?? '', 'gmd' => $sonic_gmd, 'url' => $sonic_detail_abs,
+    'year' => $sonic_year_raw, 'publisher' => $sonic_publisher_raw, 'place' => $sonic_place_raw,
+    'edition' => $sonic_edition_raw, 'isbn' => $isbn_issn ?? '', 'gmd' => $sonic_gmd, 'url' => $sonic_detail_abs,
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
 
-<script type="application/ld+json"><?= json_encode([
+<script type="application/ld+json"><?= json_encode(array_filter([
     '@context' => 'https://schema.org', '@type' => 'Book',
     'name' => $sonic_title_clean,
     'author' => array_map(fn($a) => ['@type' => 'Person', 'name' => $a['author_name']], $sonic_author_list),
     'isbn' => $isbn_issn ?? '', 'publisher' => ['@type' => 'Organization', 'name' => $publisher_name ?? ''],
-    'datePublished' => (string)$sonic_year, 'image' => $sonic_cover_abs, 'url' => $sonic_detail_abs,
+    'datePublished' => $sonic_year_raw, 'image' => $sonic_cover_abs, 'url' => $sonic_detail_abs,
     'inLanguage' => $language ?? 'id',
+], fn($v) => $v !== '' && $v !== []), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>
+<script type="application/ld+json"><?= json_encode([
+    '@context' => 'https://schema.org', '@type' => 'BreadcrumbList',
+    'itemListElement' => [
+        ['@type' => 'ListItem', 'position' => 1, 'name' => __('Home'), 'item' => $sonic_scheme . '://' . $sonic_host . SWB . 'index.php'],
+        ['@type' => 'ListItem', 'position' => 2, 'name' => __('Collection'), 'item' => $sonic_scheme . '://' . $sonic_host . SWB . 'index.php?search=search'],
+        ['@type' => 'ListItem', 'position' => 3, 'name' => $sonic_title_clean, 'item' => $sonic_detail_abs],
+    ],
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></script>

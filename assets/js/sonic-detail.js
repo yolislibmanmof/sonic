@@ -1,9 +1,9 @@
 /**
- * SONIC OPAC — Detail Record Revolution (FINAL — BATCH 1)
+ * SONIC OPAC — Detail Record Revolution (FINAL — BATCH 4)
  * Modul 1: 3D Book, Tabs, Citations+Export, Cover, Micro-interactions.
  * Modul 2 (Fase 3): Zoom, QR, Reader, Copy Call, Reviews.
- * Patch: token ulasan (new_token), guard respons, reset bintang, anti double-submit,
- *        toast timer, clipboard fallback, ESC modal, hook QR lokal (Batch 3).
+ * BATCH 4: token ulasan rotasi Tahan form.reset() (fix submit ke-2 = 403),
+ *          selector token tanpa hash hardcode, guard respons JSON, QR lokal otomatis.
  */
 (function () {
     'use strict';
@@ -129,7 +129,7 @@
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();
 
-/* ===== MODUL 2 — FASE 3: Zoom, QR, Reader, Copy Call, Reviews (FINAL BATCH 1) ===== */
+/* ===== MODUL 2 — FASE 3: Zoom, QR, Reader, Copy Call, Reviews (BATCH 4) ===== */
 (function () {
     'use strict';
     function $(s, c) { return (c || document).querySelector(s); }
@@ -166,8 +166,8 @@
         b.addEventListener('click', function () {
             var url = b.getAttribute('data-url') || window.location.href;
             var html = null;
-            /* Hook QR lokal: aktif otomatis bila lib qrcode-generator (Batch 3) tersedia.
-               Sebelum itu, fallback persis perilaku lama (api.qrserver.com). */
+            /* QR lokal otomatis bila assets/plugin/qrcode/qrcode.min.js dimuat (lihat patch footer + tools/fetch_qr.php).
+               Tanpa itu, fallback online tetap berfungsi persis seperti sebelumnya. */
             if (typeof window.qrcode === 'function') {
                 try {
                     var qr = window.qrcode(0, 'M'); qr.addData(url); qr.make();
@@ -197,12 +197,19 @@
 
     function stars(n) { var s = ''; for (var i = 1; i <= 5; i++) s += '<i class="' + (i <= Math.round(n) ? 'fas' : 'far') + ' fa-star"></i>'; return s; }
 
+    /* BATCH 4: cari field token tanpa hash hardcode; dukung nama apa pun dari server. */
+    function findTokenField(form, name) {
+        if (name) { var byName = form.querySelector('input[name="' + name + '"]'); if (byName) return byName; }
+        return form.querySelector('input[type="hidden"][name^="_csrf_token_"]') || form.querySelector('input[type="hidden"][name="csrf_token"]');
+    }
+
     function initReviews() {
         var root = $('.sonic-detail-revolution'); if (!root) return;
         var id = root.getAttribute('data-biblio-id');
         var sum = $('#sonicRatingSummary'), list = $('#sonicReviewList');
         function load() {
             fetch(base() + 'api/review.php?biblio_id=' + encodeURIComponent(id)).then(function (r) { return r.json(); }).then(function (d) {
+                if (!d || typeof d !== 'object') return;
                 var avg = Number(d.avg) || 0, count = Number(d.count) || 0;
                 if (sum) sum.innerHTML = '<span class="sonic-stars">' + stars(avg) + '</span> <b>' + avg + '</b> / 5 · ' + count + ' ulasan';
                 var items = Array.isArray(d.items) ? d.items : [];
@@ -223,13 +230,18 @@
             if (sb) sb.disabled = true;
             var fd = new FormData(form);
             fetch(base() + 'api/review.php', { method: 'POST', body: fd }).then(function (r) { return r.json(); }).then(function (d) {
-                /* FIX F-2: Volnix me-rotasi token setelah validasi — sinkronkan token baru ke form */
-                if (d.new_token) {
-                    var t = form.querySelector('input[name="' + (d.token_name || '_csrf_token_645a83a41868941e4692aa31e7235f2') + '"]');
-                    if (t) t.value = d.new_token;
-                }
+                if (!d || typeof d !== 'object') { toast('Respons tidak valid'); return; }
+                /* FIX BATCH 4: setAttribute ikut memperbarui defaultValue, sehingga form.reset()
+                   TIDAK membuang token rotasi → ulasan ke-2/ketiga tetap lolos CSRF. */
+                var tokenEl = findTokenField(form, d.token_name);
+                if (d.new_token && tokenEl) { tokenEl.setAttribute('value', d.new_token); tokenEl.value = d.new_token; }
                 toast(d.message || 'Tersimpan');
-                if (d.status) { form.reset(); if (ratingInput) ratingInput.value = 5; paintStars(5); load(); }
+                if (d.status) {
+                    form.reset();
+                    if (d.new_token && tokenEl) tokenEl.value = d.new_token; // jaga-jaga pasca reset
+                    if (ratingInput) ratingInput.value = 5;
+                    paintStars(5); load();
+                }
             }).catch(function () { toast('Gagal mengirim ulasan'); }).then(function () { if (sb) sb.disabled = false; });
         });
     }

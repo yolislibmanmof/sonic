@@ -1,7 +1,8 @@
 /**
- * SONIC PREMIUM — Batch 3 FINAL (additif, tanpa dependensi baru)
- * 1) Terakhir Dilihat (client-side) — rail snap + navigasi + tanggal lokal
- * 2) Mungkin maksud Anda… (did-you-mean via api/suggest.php saat hasil kosong)
+ * SONIC PREMIUM — Batch 3 + BATCH 5 (additif, tanpa dependensi baru)
+ * 1) Terakhir Dilihat (client-side) — rail snap + navigasi + tanggal lokal (TETAP)
+ * 2) Mungkin maksud Anda… — BATCH 5: fuzzy via api/discovery.php (index_words bawaan 9.8),
+ *    fallback otomatis ke suggest.php (perilaku lama) bila index kosong / endpoint gagal.
  * Tidak mengubah fitur lama; semua di-guard try/catch.
  */
 (function () {
@@ -10,6 +11,7 @@
     var LANG = (window.SONIC_CFG && window.SONIC_CFG.lang) || (document.documentElement.lang || 'en');
     var IS_ID = /^id/i.test(String(LANG));
     var DYM_LABEL = IS_ID ? 'Mungkin maksud Anda' : 'Did you mean';
+    var DYM_ON = !(window.SONIC_CFG && window.SONIC_CFG.discovery && window.SONIC_CFG.discovery.dym === false);
 
     function base() {
         if (window.SONIC_CFG && window.SONIC_CFG.base) return window.SONIC_CFG.base;
@@ -67,7 +69,6 @@
             grid.innerHTML = ''; sec.style.display = 'none';
         });
 
-        /* Navigasi rail (hanya muncul bila memang bisa discroll) */
         var sub = sec.querySelector('.sonic-section-sub');
         if (sub && !sub.querySelector('.sonic-viewed-nav')) {
             var nav = document.createElement('span'); nav.className = 'sonic-viewed-nav';
@@ -92,37 +93,56 @@
         }
     }
 
-    /* ===== 2. Did-you-mean saat hasil kosong ===== */
-    function didYouMean() {
+    /* ===== 2. Did-you-mean (BATCH 5: fuzzy dulu, fallback lama) ===== */
+    function renderDYM(sugg, kw) {
         var main = document.querySelector('.sonic-result-main'); if (!main) return;
-        var kw = (new URLSearchParams(location.search).get('keywords') || '').trim();
-        if (!kw) return;
-        var hasCards = main.querySelector('.sonic-book, .sonic-list-card');
-        var empty = main.querySelector('.sonic-empty');
-        if (hasCards && !empty) return;
         if (document.getElementById('sonicDYM')) return;
+        var seen = {}, clean = [];
+        (sugg || []).forEach(function (v) {
+            v = String(v || '').trim(); var k = v.toLowerCase();
+            if (!v || k === kw.toLowerCase() || seen[k]) return;
+            seen[k] = 1; clean.push(v);
+        });
+        if (!clean.length) return;
+        var box = document.createElement('div');
+        box.id = 'sonicDYM'; box.className = 'sonic-dym';
+        var html = '<span class="sonic-dym-label"><i class="fas fa-lightbulb"></i> ' + esc(DYM_LABEL) + ': </span>';
+        clean.slice(0, 5).forEach(function (v) {
+            html += '<a class="sonic-tag sonic-dym-chip" href="index.php?keywords=' + encodeURIComponent(v) + '&search=search">' + esc(v) + '</a>';
+        });
+        box.innerHTML = html;
+        main.insertBefore(box, main.firstChild);
+    }
+
+    function legacyDYM(kw) {
+        /* Perilaku Batch 3 dipertahankan utuh sebagai fallback */
         fetch(base() + 'api/suggest.php?q=' + encodeURIComponent(kw), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
             .then(function (r) { return r.json(); })
             .then(function (data) {
                 var items = Array.isArray(data) ? data : [];
-                var seen = {}, sugg = [];
-                items.forEach(function (it) {
-                    if (it.t !== 'title') return;
-                    var v = (it.v || '').trim(), k = v.toLowerCase();
-                    if (!v || k === kw.toLowerCase() || seen[k]) return;
-                    seen[k] = 1; sugg.push(v);
-                });
-                if (!sugg.length) return;
-                var box = document.createElement('div');
-                box.id = 'sonicDYM'; box.className = 'sonic-dym';
-                var html = '<span class="sonic-dym-label"><i class="fas fa-lightbulb"></i> ' + esc(DYM_LABEL) + ': </span>';
-                sugg.slice(0, 5).forEach(function (v) {
-                    html += '<a class="sonic-tag sonic-dym-chip" href="index.php?keywords=' + encodeURIComponent(v) + '&search=search">' + esc(v) + '</a>';
-                });
-                box.innerHTML = html;
-                main.insertBefore(box, main.firstChild);
+                var sugg = [];
+                items.forEach(function (it) { if (it.t === 'title') sugg.push(it.v); });
+                renderDYM(sugg, kw);
             })
             .catch(function () {});
+    }
+
+    function didYouMean() {
+        var main = document.querySelector('.sonic-result-main'); if (!main) return;
+        var kw = (new URLSearchParams(location.search).get('keywords') || '').trim();
+        if (!kw || !DYM_ON) return;
+        var hasCards = main.querySelector('.sonic-book, .sonic-list-card');
+        var empty = main.querySelector('.sonic-empty');
+        if (hasCards && !empty) return;
+        if (document.getElementById('sonicDYM')) return;
+        fetch(base() + 'api/discovery.php?action=dym&q=' + encodeURIComponent(kw), { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (r) { return r.json(); })
+            .then(function (d) {
+                var sugg = (d && Array.isArray(d.suggestions)) ? d.suggestions : [];
+                if (sugg.length) renderDYM(sugg, kw);
+                else legacyDYM(kw);
+            })
+            .catch(function () { legacyDYM(kw); });
     }
 
     function init() { recordView(); renderViewed(); didYouMean(); }
